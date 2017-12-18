@@ -8,12 +8,12 @@ popular Convolutional Neural Networks (CNNs) to a sphere.
 1. Clone this repository.
    ```sh
    git clone https://github.com/sdsc/scnn
-   cd cnn_graph
+   cd scnn
    ```
 
 2. Install the dependencies. The code should run with TensorFlow 1.0 and newer.
    ```sh
-   pip install -r requirements.txt  # or make install
+   pip install -r requirements.txt
    ```
 
 3. Play with the Jupyter notebooks.
@@ -32,4 +32,4 @@ See the [usage notebook][usage] for a simple example with fabricated data.
 Please get in touch if you are unsure about applying the model to a different
 setting.
 
-[usage]: http://nbviewer.jupyter.org/github/sdsc/scnn/demo.ipynb
+[usage]: https://github.com/SwissDataScienceCenter/scnn/demo.ipynb

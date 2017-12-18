@@ -1,0 +1,13 @@
+numpy
+scipy
+scikit-learn
+matplotlib
+
+gensim
+tensorflow-gpu
+#tensorflow
+
+jupyter
+ipython
+
+healpy

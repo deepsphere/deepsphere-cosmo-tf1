@@ -32,4 +32,4 @@ See the [usage notebook][usage] for a simple example with fabricated data.
 Please get in touch if you are unsure about applying the model to a different
 setting.
 
-[usage]: http://nbviewer.jupyter.org/github/sdsc/scnn/blob/outputs/demo.ipynb
+[usage]: https://github.com/SwissDataScienceCenter/scnn/blob/master/demo.ipynb

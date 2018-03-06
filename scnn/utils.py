@@ -63,8 +63,8 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     W = sparse.csr_matrix(
         (w, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
 
-    W = W[indexes, :]
-    W = W[:, indexes]
+    W = W[list(indexes), :]
+    W = W[:, list(indexes)]
 
     return W
 

@@ -454,11 +454,27 @@ class cgcnn(base_model):
         b = self._bias_variable([1, 1, int(F)], regularization=False)
         return tf.nn.relu(x + b)
 
+    def b1lrelu(self, x):
+        """Bias and Leak ReLU. One bias per filter."""
+        N, M, F = x.get_shape()
+        b = self._bias_variable([1, 1, int(F)], regularization=False)
+        return self.lrelu(x + b)
+
+    def lrelu(self, x, leak=0.2):
+        ''' Leak relu '''
+        return tf.maximum(x, leak*x)
+
     def b2relu(self, x):
         """Bias and ReLU. One bias per vertex per filter."""
         N, M, F = x.get_shape()
         b = self._bias_variable([1, int(M), int(F)], regularization=False)
         return tf.nn.relu(x + b)
+
+    def b2lrelu(self, x):
+        """Bias and ReLU. One bias per vertex per filter."""
+        N, M, F = x.get_shape()
+        b = self._bias_variable([1, int(M), int(F)], regularization=False)
+        return self.lrelu(x + b)
 
     def mpool1(self, x, p):
         """Max pooling of size p. Should be a power of 2."""
@@ -554,9 +570,9 @@ class scnn(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, F, K, batch_norm, M,  **kwargs):
+    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
 
-        L, p = utils.build_laplacians(nsides)
+        L, p = utils.build_laplacians(nsides, indexes=indexes)
         super().__init__(L, F, K, p, batch_norm, M, **kwargs)
 
 

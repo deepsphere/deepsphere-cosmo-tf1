@@ -39,3 +39,15 @@ Please get in touch if you are unsure about applying the model to a different
 setting.
 
 [usage]: https://github.com/SwissDataScienceCenter/scnn/blob/master/demo.ipynb
+
+## Cite
+
+Please cite our paper if you use this code in your own work:
+```
+@article{,
+  title={TBD},
+  author={Perraudin, Nathanaël},
+  journal={Astronomy and Computing},
+  year={2018}
+}
+```

@@ -19,12 +19,12 @@ from . import utils
 
 class base_model(object):
     """Common methods for all models."""
-    
+
     def __init__(self):
         self.regularizers = []
-    
+
     # High-level interface which runs the constructed computational graph.
-    
+
     def predict(self, data, labels=None, sess=None):
         loss = 0
         size = data.shape[0]
@@ -33,14 +33,14 @@ class base_model(object):
         for begin in range(0, size, self.batch_size):
             end = begin + self.batch_size
             end = min([end, size])
-            
+
             batch_data = np.zeros((self.batch_size, data.shape[1]))
             tmp_data = data[begin:end,:]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
             batch_data[:end-begin] = tmp_data
             feed_dict = {self.ph_data: batch_data, self.ph_dropout: 1}
-            
+
             # Compute loss if labels are given.
             if labels is not None:
                 batch_labels = np.zeros(self.batch_size)
@@ -50,14 +50,14 @@ class base_model(object):
                 loss += batch_loss
             else:
                 batch_pred = sess.run(self.op_prediction, feed_dict)
-            
+
             predictions[begin:end] = batch_pred[:end-begin]
-            
+
         if labels is not None:
             return predictions, loss * self.batch_size / size
         else:
             return predictions
-        
+
     def evaluate(self, data, labels, sess=None):
         """
         Runs one evaluation against the full epoch of data.
@@ -131,17 +131,17 @@ class base_model(object):
                 summary.value.add(tag='validation/f1', simple_value=f1)
                 summary.value.add(tag='validation/loss', simple_value=loss)
                 writer.add_summary(summary, step)
-                
+
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
-                
+
 #                 _, accuracy2, f12, loss2 = self.evaluate(train_data, train_labels, sess)
 #                 print('  Train data: accuracy {:.2e}, f1 {:.2e}, loss {:.2e}' .format(accuracy2, f12, loss2))
-                
+
         print('validation accuracy: peak = {:.2f}, mean = {:.2f}'.format(max(accuracies), np.mean(accuracies[-10:])))
         writer.close()
         sess.close()
-        
+
         t_step = (time.time() - t_wall) / num_steps
         return accuracies, losses, t_step
 
@@ -153,7 +153,7 @@ class base_model(object):
         return val
 
     # Methods to construct the computational graph.
-    
+
     def build_graph(self, M_0):
         """Build the computational graph of the model."""
         self.graph = tf.Graph()
@@ -174,13 +174,13 @@ class base_model(object):
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()
-            
+
             # Summaries for TensorBoard and Save for model parameters.
             self.op_summary = tf.summary.merge_all()
             self.op_saver = tf.train.Saver(max_to_keep=5)
-        
+
         self.graph.finalize()
-    
+
     def inference(self, data, dropout):
         """
         It builds the model, i.e. the computational graph, as far as
@@ -197,7 +197,7 @@ class base_model(object):
         # TODO: optimizations for sparse data
         logits = self._inference(data, dropout)
         return logits
-    
+
     def probabilities(self, logits):
         """Return the probability of a sample to belong to each class."""
         with tf.name_scope('probabilities'):
@@ -220,7 +220,7 @@ class base_model(object):
             with tf.name_scope('regularization'):
                 regularization *= tf.add_n(self.regularizers)
             loss = cross_entropy + regularization
-            
+
             # Summaries for TensorBoard.
             tf.summary.scalar('loss/cross_entropy', cross_entropy)
             tf.summary.scalar('loss/regularization', regularization)
@@ -234,7 +234,7 @@ class base_model(object):
                 with tf.control_dependencies([op_averages]):
                     loss_average = tf.identity(averages.average(loss), name='control')
             return loss, loss_average
-    
+
     def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False):
         """Adds to the loss model the Ops required to generate and apply gradients."""
         with tf.name_scope('training'):
@@ -309,17 +309,17 @@ class cgcnn(base_model):
            Should be 1 (no pooling) or a power of 2 (reduction by 2 at each coarser level).
            Beware to have coarsened enough.
         batch_norm: apply batch norm at the end of the filter (bool vector)
-        L: List of Graph Laplacians. Size M x M. 
+        L: List of Graph Laplacians. Size M x M.
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
         M: Number of features per sample, i.e. number of hidden neurons.
            The last layer is the softmax, i.e. M[-1] is the number of classes.
-    
+
     The following are choices of implementation for various blocks.
         brelu: bias and relu, e.g. b1relu or b2relu.
         pool: pooling, e.g. mpool1.
-    
+
     Training parameters:
         num_epochs:    Number of training epochs.
         learning_rate: Initial learning rate.
@@ -342,18 +342,18 @@ class cgcnn(base_model):
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name='', adam=True):
         super().__init__()
-        
+
         # Verify the consistency w.r.t. the number of layers.
         assert len(L) == len(F) == len(K) == len(p)
         assert np.all(np.array(p) >= 1)
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
         assert np.all(np.mod(p_log2, 1) == 0)  # Powers of 2.
-        
+
         # Keep the useful Laplacians only. May be zero.
         M_0 = L[0].shape[0]
         j = 0
         self.L = L
-        
+
         # Print information about NN architecture.
         Ngconv = len(p)
         Nfc = len(M)
@@ -379,7 +379,7 @@ class cgcnn(base_model):
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
             print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
-        
+
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
         self.num_epochs, self.learning_rate = num_epochs, learning_rate
@@ -393,7 +393,7 @@ class cgcnn(base_model):
         self.brelu = getattr(self, brelu)
         self.pool = getattr(self, pool)
 
-        
+
         # Build the computational graph.
         self.build_graph(M_0)
 
@@ -510,7 +510,7 @@ class cgcnn(base_model):
                     x = self.brelu(x)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
-        
+
         # Fully connected hidden layers.
         N, M, F = x.get_shape()
         x = tf.reshape(x, [int(N), int(M*F)])  # N x M
@@ -518,7 +518,7 @@ class cgcnn(base_model):
             with tf.variable_scope('fc{}'.format(i+1)):
                 x = self.fc(x, M)
                 x = tf.nn.dropout(x, dropout)
-        
+
         # Logits linear layer, i.e. softmax without normalization.
         with tf.variable_scope('logits'):
             x = self.fc(x, self.M[-1], relu=False)
@@ -540,11 +540,11 @@ class scnn(cgcnn):
     They are lists, which length is equal to the number of fc layers.
         M: Number of features per sample, i.e. number of hidden neurons.
            The last layer is the softmax, i.e. M[-1] is the number of classes.
-    
+
     The following are choices of implementation for various blocks.
         brelu: bias and relu, e.g. b1relu or b2relu.
         pool: pooling, e.g. mpool1.
-    
+
     Training parameters:
         num_epochs:    Number of training epochs.
         learning_rate: Initial learning rate.

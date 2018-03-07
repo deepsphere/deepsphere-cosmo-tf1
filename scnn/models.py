@@ -16,10 +16,9 @@ import tensorflow as tf
 
 from . import utils
 
-# Common methods for all models
-
 
 class base_model(object):
+    """Common methods for all models."""
     
     def __init__(self):
         self.regularizers = []
@@ -297,25 +296,6 @@ class base_model(object):
         tf.summary.histogram(var.op.name, var)
         return var
 
-    def _batch_norm(self, x, epsilon=1e-5, momentum=0.9, name="batch_norm", train=True):
-        with tf.variable_scope(name):
-            return tf.contrib.layers.batch_norm(x, decay=momentum, updates_collections=None, epsilon=epsilon,
-                                            scale=True, is_training=train, scope=name)      
-
-
-# class Batch_norm(object):
-#     def __init__(self, epsilon=1e-5, momentum=0.9, name="batch_norm"):
-#         with tf.variable_scope(name):
-#             self.epsilon = epsilon
-#             self.momentum = momentum
-#             self.name = name
-
-#     def __call__(self, x, train=True):
-#         if True: #with tf.device('/cpu:0'):
-#             return tf.contrib.layers.batch_norm(x, decay=self.momentum, updates_collections=None, epsilon=self.epsilon,
-#                                             scale=True, is_training=train, scope=self.name)
-
-
 
 class cgcnn(base_model):
     """
@@ -500,6 +480,14 @@ class cgcnn(base_model):
         else:
             return x
 
+    def batch_normalization(self, x, epsilon=1e-5, momentum=0.9, train=True):
+        return tf.contrib.layers.batch_norm(x,
+                                            decay=momentum,
+                                            updates_collections=None,
+                                            epsilon=epsilon,
+                                            scale=True,
+                                            is_training=train)
+
     def fc(self, x, Mout, relu=True):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
@@ -515,8 +503,9 @@ class cgcnn(base_model):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
+                with tf.name_scope('batch_norm'):
                     if self.batch_norm[i]:
-                        x = self._batch_norm(x, name='bn{}'.format(i))
+                        x = self.batch_normalization(x)
                 with tf.name_scope('bias_relu'):
                     x = self.brelu(x)
                 with tf.name_scope('pooling'):
@@ -534,7 +523,6 @@ class cgcnn(base_model):
         with tf.variable_scope('logits'):
             x = self.fc(x, self.M[-1], relu=False)
         return x
-
 
 
 class scnn(cgcnn):

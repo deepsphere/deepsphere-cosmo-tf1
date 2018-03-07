@@ -4,17 +4,17 @@ import healpy as hp
 
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
-    '''Return an unknormalized Weight matrix for a graph using the HEALPIX sampling
+    '''Return an unnormalized weight matrix for a graph using the HEALPIX sampling.
 
     Parameters
     ----------
-    nside : int, scalar or array-like
-            The healpix nside parameter, must be a power of 2, less than 2**30
-    nest : nest : bool, optional
-           if True, assume NESTED pixel ordering, otherwise, RING pixel ordering
-    indexes: list of indexes to use. With None, all indexes are used. This 
-           allows to build the graph only on a subpart of the sphere 
-           (default None, all sphere)
+    nside: int, scalar or array-like
+        The healpix nside parameter, must be a power of 2, less than 2**30
+    nest: bool, optional
+        if True, assume NESTED pixel ordering, otherwise, RING pixel ordering
+    indexes: list of indexes to use. With None, all indexes are used. This
+        allows to build the graph only on a subpart of the sphere
+        (default None, all sphere)
     '''
 
     npix = nside**2 * 12  # number of pixels
@@ -82,12 +82,12 @@ def build_laplacian(W, lap_type='normalized', dtype=np.float32):
         raise ValueError('Unknown Laplacian type {}'.format(lap_type))
 
 
-# build a healpix graph using the pygsp from NSIDE
 def healpix_graph(nside=16,
                   nest=True,
                   lap_type='normalized',
                   indexes=None,
                   dtype=np.float32):
+    """Build a healpix graph using the pygsp from NSIDE."""
     from pygsp import graphs
     # 1) get the coordinates
     npix = nside**2 * 12  # number of pixels

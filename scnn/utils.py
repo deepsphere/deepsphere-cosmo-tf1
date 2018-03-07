@@ -1,6 +1,6 @@
-import healpy as hp
 import numpy as np
 from scipy import sparse
+import healpy as hp
 
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):

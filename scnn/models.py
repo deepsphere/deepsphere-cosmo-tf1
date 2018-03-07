@@ -4,13 +4,17 @@ This module defines the graph convolutional neural network.
 Most of the code is based on https://github.com/mdeff/cnn_graph/.
 """
 
-import tensorflow as tf
-import sklearn
-import scipy.sparse
-import numpy as np
-import os, time, collections, shutil
-from . import utils
+import os
+import time
+import collections
+import shutil
 
+import numpy as np
+from scipy import sparse
+import sklearn
+import tensorflow as tf
+
+from . import utils
 
 # Common methods for all models
 
@@ -418,8 +422,8 @@ class cgcnn(base_model):
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
-        L = scipy.sparse.csr_matrix(L)
-        lmax = 1.02*scipy.sparse.linalg.eigsh(
+        L = sparse.csr_matrix(L)
+        lmax = 1.02*sparse.linalg.eigsh(
                 L, k=1, which='LM', return_eigenvectors=False)[0]
         L = utils.rescale_L(L, lmax=lmax)
         L = L.tocoo()

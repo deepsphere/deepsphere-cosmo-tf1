@@ -39,7 +39,7 @@ class base_model(object):
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
             batch_data[:end-begin] = tmp_data
-            feed_dict = {self.ph_data: batch_data, self.ph_dropout: 1}
+            feed_dict = {self.ph_data: batch_data, self.ph_training: False}
 
             # Compute loss if labels are given.
             if labels is not None:
@@ -109,7 +109,7 @@ class base_model(object):
             batch_data, batch_labels = train_data[idx,:], train_labels[idx]
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
-            feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_dropout: self.dropout}
+            feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
             learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
 
@@ -163,10 +163,10 @@ class base_model(object):
             with tf.name_scope('inputs'):
                 self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
                 self.ph_labels = tf.placeholder(tf.int32, (self.batch_size), 'labels')
-                self.ph_dropout = tf.placeholder(tf.float32, (), 'dropout')
+                self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.
-            op_logits = self.inference(self.ph_data, self.ph_dropout)
+            op_logits = self.inference(self.ph_data, self.ph_training)
             self.op_loss, self.op_loss_average = self.loss(op_logits, self.ph_labels, self.regularization)
             self.op_train = self.training(self.op_loss, self.learning_rate,
                     self.decay_steps, self.decay_rate, self.momentum, self.adam)
@@ -181,7 +181,7 @@ class base_model(object):
 
         self.graph.finalize()
 
-    def inference(self, data, dropout):
+    def inference(self, data, training):
         """
         It builds the model, i.e. the computational graph, as far as
         is required for running the network forward to make predictions,
@@ -190,12 +190,13 @@ class base_model(object):
         data: size N x M
             N: number of signals (samples)
             M: number of vertices (features)
-        training: we may want to discriminate the two, e.g. for dropout.
-            True: the model is built for training.
-            False: the model is built for evaluation.
+        training: we may want to discriminate the two, e.g. for dropout and
+            batch normalization.
+            True: the model is run for training.
+            False: the model is run for evaluation.
         """
         # TODO: optimizations for sparse data
-        logits = self._inference(data, dropout)
+        logits = self._inference(data, training)
         return logits
 
     def probabilities(self, logits):
@@ -247,7 +248,6 @@ class base_model(object):
             # Optimizer.
             if adam:
                 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum)
-                # print('Using Adam Optimizer')
             else:
                 if momentum == 0:
                     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
@@ -326,7 +326,7 @@ class cgcnn(base_model):
         decay_rate:    Base of exponential decay. No decay with 1.
         decay_steps:   Number of steps after which the learning rate decays.
         momentum:      Momentum. 0 indicates no momentum.
-        adam:          Use adam optimizer
+        adam:          Use adam optimizer.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
@@ -392,7 +392,6 @@ class cgcnn(base_model):
         self.filter = getattr(self, 'chebyshev5')
         self.brelu = getattr(self, brelu)
         self.pool = getattr(self, pool)
-
 
         # Build the computational graph.
         self.build_graph(M_0)
@@ -480,13 +479,13 @@ class cgcnn(base_model):
         else:
             return x
 
-    def batch_normalization(self, x, epsilon=1e-5, momentum=0.9, train=True):
+    def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):
         return tf.contrib.layers.batch_norm(x,
-                                            decay=momentum,
+                                            decay=decay,
                                             updates_collections=None,
                                             epsilon=epsilon,
                                             scale=True,
-                                            is_training=train)
+                                            is_training=training)
 
     def fc(self, x, Mout, relu=True):
         """Fully connected layer with Mout features."""
@@ -496,7 +495,7 @@ class cgcnn(base_model):
         x = tf.matmul(x, W) + b
         return tf.nn.relu(x) if relu else x
 
-    def _inference(self, x, dropout):
+    def _inference(self, x, training):
         # Graph convolutional layers.
         x = tf.expand_dims(x, 2)  # N x M x F=1
         for i in range(len(self.p)):
@@ -505,7 +504,7 @@ class cgcnn(base_model):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
                 with tf.name_scope('batch_norm'):
                     if self.batch_norm[i]:
-                        x = self.batch_normalization(x)
+                        x = self.batch_normalization(x, training)
                 with tf.name_scope('bias_relu'):
                     x = self.brelu(x)
                 with tf.name_scope('pooling'):
@@ -514,9 +513,10 @@ class cgcnn(base_model):
         # Fully connected hidden layers.
         N, M, F = x.get_shape()
         x = tf.reshape(x, [int(N), int(M*F)])  # N x M
-        for i,M in enumerate(self.M[:-1]):
+        for i, M in enumerate(self.M[:-1]):
             with tf.variable_scope('fc{}'.format(i+1)):
                 x = self.fc(x, M)
+                dropout = tf.cond(training, lambda: float(self.dropout), lambda: 1.0)
                 x = tf.nn.dropout(x, dropout)
 
         # Logits linear layer, i.e. softmax without normalization.
@@ -551,7 +551,7 @@ class scnn(cgcnn):
         decay_rate:    Base of exponential decay. No decay with 1.
         decay_steps:   Number of steps after which the learning rate decays.
         momentum:      Momentum. 0 indicates no momentum.
-        adam:          Use adam optimizer
+        adam:          Use adam optimizer.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.

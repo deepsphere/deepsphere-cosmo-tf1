@@ -3,6 +3,12 @@
 The code in this repository implements an efficient generalization of the
 popular Convolutional Neural Networks (CNNs) to a sphere.
 
+The implementation is based on [convolutional neural networks on
+graphs][gcnn_paper], as implemented [here][gcnn_code].
+
+[gcnn_paper]: https://arxiv.org/abs/1606.09375
+[gcnn_code]: https://github.com/mdeff/cnn_graph/
+
 ## Installation
 
 1. Clone this repository.

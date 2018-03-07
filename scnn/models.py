@@ -1,3 +1,8 @@
+"""
+This module defines the graph convolutional neural network.
+
+Most of the code is based on https://github.com/mdeff/cnn_graph/.
+"""
 
 import tensorflow as tf
 import sklearn
@@ -5,10 +10,6 @@ import scipy.sparse
 import numpy as np
 import os, time, collections, shutil
 from . import utils
-
-
-#NFEATURES = 28**2
-#NCLASSES = 10
 
 
 # Common methods for all models

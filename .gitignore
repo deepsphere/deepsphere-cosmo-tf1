@@ -1,6 +1,6 @@
 __pycache__
-checkpoints
-summaries
-data_v4
+/checkpoints/
+/summaries/
+/data/
 .ipynb_checkpoints
 .DS_Store

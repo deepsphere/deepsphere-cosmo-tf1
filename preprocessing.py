@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Preprocess the raw data
 import os
 import numpy as np
@@ -5,7 +7,7 @@ import healpy as hp
 
 
 def same_psd():
-    path = '/data/same_psd/'
+    path = 'data/same_psd/'
 
     file_ext = 'npy'
     queue = []

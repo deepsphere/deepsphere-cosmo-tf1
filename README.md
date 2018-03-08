@@ -13,19 +13,16 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/sdsc/scnn
+   git clone https://github.com/SwissDataScienceCenter/scnn.git
    cd scnn
    ```
 
-2. Install the dependencies. The code should run with TensorFlow 1.0 and newer.
+2. Install the dependencies.
    ```sh
    pip install -r requirements.txt
    ```
-
-If you have no gpu, you can use the following command instead:
-   ```
-   pip install -r requirements_nogpu.txt
-   ```
+   If you won't be working with a GPU, comment the `tensorflow-gpu==1.6.0` line
+   in `requirements.txt` and uncomment the `tensorflow==1.6.0` line.
 
 3. Play with the Jupyter notebooks.
    ```sh

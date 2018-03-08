@@ -7,15 +7,16 @@ import numpy as np
 import healpy as hp
 
 
-def process_same_psd(path):
+def process_same_psd(inpath, outpath):
 
-    for filename in os.listdir(path):
+    os.makedirs(outpath, exist_ok=True)
+    for filename in os.listdir(inpath):
 
         if not filename.endswith('npy'):
             continue
 
-        filepath_npy = os.path.join(path, filename)
-        filepath_fits = filepath_npy[:-3] + 'fits'
+        filepath_npy = os.path.join(inpath, filename)
+        filepath_fits = os.path.join(outpath, filename)[:-3] + 'fits'
 
         if os.path.isfile(filepath_fits):
             print('{} already exist - skipping'.format(filepath_fits))
@@ -28,4 +29,4 @@ def process_same_psd(path):
 
 
 if __name__ == '__main__':
-    process_same_psd('data/same_psd/')
+    process_same_psd(inpath='data/same_psd/', outpath='data/same_psd/')

@@ -22,10 +22,16 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
    pip install -r requirements.txt
    ```
 
+If you have no gpu, you can use the following command instead:
+   ```
+   pip install -r requirements_nogpu.txt
+   ```
+
 3. Play with the Jupyter notebooks.
    ```sh
    jupyter notebook
    ```
+
 
 ## Using the model
 

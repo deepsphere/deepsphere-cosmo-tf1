@@ -6,8 +6,7 @@ import numpy as np
 import healpy as hp
 
 
-def same_psd():
-    path = 'data/same_psd/'
+def same_psd(path):
 
     file_ext = 'npy'
     queue = []
@@ -18,7 +17,7 @@ def same_psd():
     for file in queue:
         file_name = file[:-3] + 'fits'
         if os.path.isfile(file_name):
-            print('{} alreay exist - skipping'.format(file_name))
+            print('{} already exist - skipping'.format(file_name))
         else:
             print('Process file: ' + file)
             ma1 = np.load(file)
@@ -27,4 +26,4 @@ def same_psd():
 
 
 if __name__ == '__main__':
-    same_psd()
+    same_psd('data/same_psd/')

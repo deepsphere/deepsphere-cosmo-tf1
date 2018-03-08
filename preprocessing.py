@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 
-# Preprocess the raw data
+# Script to pre-process the raw simulator data.
+
 import os
 import numpy as np
 import healpy as hp
 
 
-def same_psd(path):
+def process_same_psd(path):
 
-    file_ext = 'npy'
-    queue = []
-    for file in os.listdir(path):
-        if file.endswith(file_ext):
-            queue.append(os.path.join(path, file))
+    for filename in os.listdir(path):
 
-    for file in queue:
-        file_name = file[:-3] + 'fits'
-        if os.path.isfile(file_name):
-            print('{} already exist - skipping'.format(file_name))
+        if not filename.endswith('npy'):
+            continue
+
+        filepath_npy = os.path.join(path, filename)
+        filepath_fits = filepath_npy[:-3] + 'fits'
+
+        if os.path.isfile(filepath_fits):
+            print('{} already exist - skipping'.format(filepath_fits))
+
         else:
-            print('Process file: ' + file)
-            ma1 = np.load(file)
-            ma1 = ma1 - np.mean(ma1)
-            hp.write_map(file[:-3] + 'fits', ma1, fits_IDL=False, coord='C')
+            print('Process file: ' + filepath_npy)
+            ma = np.load(filepath_npy)
+            ma = ma - np.mean(ma)
+            hp.write_map(filepath_fits, ma, fits_IDL=False, coord='C')
 
 
 if __name__ == '__main__':
-    same_psd('data/same_psd/')
+    process_same_psd('data/same_psd/')

@@ -13,7 +13,7 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/sdsc/scnn
+   git clone https://github.com/SwissDataScienceCenter/scnn.git
    cd scnn
    ```
 

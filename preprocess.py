@@ -29,4 +29,4 @@ def process_same_psd(inpath, outpath):
 
 
 if __name__ == '__main__':
-    process_same_psd(inpath='data/same_psd/', outpath='data/same_psd/')
+    process_same_psd(inpath='data/data_v4/', outpath='data/same_psd/')

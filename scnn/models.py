@@ -84,7 +84,7 @@ class base_model(object):
             string += '\ntime: {:.0f}s (wall {:.0f}s)'.format(time.process_time()-t_process, time.time()-t_wall)
         return string, accuracy, f1, loss
 
-    def fit(self, train_data, train_labels, val_data, val_labels):
+    def fit(self, train_dataset, val_dataset):
         t_process, t_wall = time.process_time(), time.time()
         sess = tf.Session(graph=self.graph)
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
@@ -98,15 +98,17 @@ class base_model(object):
         accuracies = []
         losses = []
         indices = collections.deque()
-        num_steps = int(self.num_epochs * train_data.shape[0] / self.batch_size)
+        num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
+        train_iter = train_dataset.iter(self.batch_size)
+        val_data, val_labels = val_dataset.get_all_data()
         for step in range(1, num_steps+1):
 
             # Be sure to have used all the samples before using one a second time.
             if len(indices) < self.batch_size:
-                indices.extend(np.random.permutation(train_data.shape[0]))
+                indices.extend(np.random.permutation(train_dataset.N))
             idx = [indices.popleft() for i in range(self.batch_size)]
 
-            batch_data, batch_labels = train_data[idx,:], train_labels[idx]
+            batch_data, batch_labels = next(train_iter)
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
@@ -115,7 +117,7 @@ class base_model(object):
 
             # Periodical evaluation of the model.
             if step % self.eval_frequency == 0 or step == num_steps:
-                epoch = step * self.batch_size / train_data.shape[0]
+                epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                 print('  learning_rate = {:.2e}, loss_average = {:.2e}'.format(learning_rate, loss_average))
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)

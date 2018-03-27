@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import healpy as hp
 
 
 class LabeledDataset(object):
@@ -116,3 +117,35 @@ def grouper(iterable, n, fillvalue=None):
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
     return itertools.zip_longest(fillvalue=fillvalue, *args)
+
+
+
+def hp_split(img, order, nest=True):
+    """
+    Split the data of different part of the sphere. 
+    Return the splitted data and some possible index on the sphere.
+    """
+    npix = len(img)
+    nside = hp.npix2nside(npix)
+    if hp.nside2order(nside) < order:
+        raise ValueError('Order not compatible with data.')
+    if not nest:
+        raise NotImplementedError('Implement the change of coordidinate.')
+    nsample = 12 * order**2
+    return img.reshape([nsample, npix//nsample])
+
+
+def histogram(x, cmin, cmax, bins=100):
+    """
+    Make histograms features vector from samples contained in a numpy array
+    """
+    if x.ndim == 1:
+        y, _ = np.histogram(x, bins=bins, range=[cmin, cmax])
+        return y.astype(float)
+    else:
+        y = np.empty((len(x), bins), float)
+        for i in range(len(x)):
+            y[i], _ = np.histogram(x[i], bins=bins, range=[cmin, cmax])
+        return y
+
+

@@ -98,8 +98,7 @@ def healpix_graph(nside=16,
     W = healpix_weightmatrix(
         nside=nside, nest=nest, indexes=indexes, dtype=dtype)
     # 3) building the graph
-    G = graphs.Graph(
-        W, gtype='healpix', lap_type=lap_type, coords=coords)
+    G = graphs.Graph(W, gtype='healpix', lap_type=lap_type, coords=coords)
     return G
 
 
@@ -140,3 +139,20 @@ def build_laplacians(nsides, indexes=None):
     if len(L):
         p.append(1)
     return L, p
+
+
+def nside2indexes(nsides, order):
+    """ 
+    Return list of indexes from nside given a specific order
+
+    This function return the necessary indexes for a scnn when 
+    only a part of the sphere is considered.
+
+    Arguments
+    ---------
+    nsides : list of nside for the desired scale
+    order  : parameter specifying the size of the sphere part
+    """
+    nsample = 12 * order**2
+    indexes = [np.arange(hp.nside2npix(nside) // nsample) for nside in nsides]
+    return indexes

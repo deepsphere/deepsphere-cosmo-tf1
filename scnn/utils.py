@@ -185,3 +185,10 @@ def histogram(x, cmin, cmax, bins=100):
         for i in range(len(x)):
             y[i], _ = np.histogram(x[i], bins=bins, range=[cmin, cmax])
         return y
+
+
+def print_error(model, x, labels, name):
+    """Compute and print the prediction error of a model."""
+    pred = model.predict(x)
+    error = sum(np.abs(pred - labels)) / len(labels)
+    print('{} error: {:.2%}'.format(name, error))

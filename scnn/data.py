@@ -29,11 +29,9 @@ class LabeledDataset(object):
         self._X = X[self._p]
         self._label = label[self._p]
 
-
     def get_all_data(self):
         '''Return all the data (shuffled).'''
         return self._X, self._label
-
 
     def get_samples(self, N=100, transform=True):
         '''Get the N first samples.'''

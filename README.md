@@ -21,14 +21,14 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
    ```sh
    pip install -r requirements.txt
    ```
-   If you won't be working with a GPU, comment the `tensorflow-gpu==1.6.0` line
-   in `requirements.txt` and uncomment the `tensorflow==1.6.0` line.
+   **Note**: if you won't be working with a GPU, comment the
+   `tensorflow-gpu==1.6.0` line in `requirements.txt` and uncomment the
+   `tensorflow==1.6.0` line.
 
 3. Play with the Jupyter notebooks.
    ```sh
    jupyter notebook
    ```
-
 
 ## Using the model
 
@@ -42,6 +42,17 @@ Please get in touch if you are unsure about applying the model to a different
 setting.
 
 [usage]: https://github.com/SwissDataScienceCenter/scnn/blob/master/demo.ipynb
+
+## Experiments
+
+Below are some notebooks which contain various experiments:
+1. Classification of data on the whole sphere
+1. Classification of data from part of the sphere
+1. Robustness to noise
+
+The results we reported in the paper are recorded here:
+1. TODO: link to notebook
+1. TODO: link to notebook
 
 ## Cite
 

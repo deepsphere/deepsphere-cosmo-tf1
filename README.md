@@ -54,9 +54,11 @@ The results we reported in the paper are recorded here:
 1. TODO: link to notebook
 1. TODO: link to notebook
 
-## Cite
+## License & co
 
-Please cite our paper if you use this code in your own work:
+The content of this repository is released under the terms of the [MIT license](LICENSE.txt).
+Please cite our [paper][arXiv] if you use it.
+
 ```
 @article{,
   title={TBD},

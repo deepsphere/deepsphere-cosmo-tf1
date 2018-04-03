@@ -9,64 +9,52 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
 
     Parameters
     ----------
-    nside: int, scalar or array-like
-        The healpix nside parameter, must be a power of 2, less than 2**30
-    nest: bool, optional
+    nside : int
+        The healpix nside parameter, must be a power of 2, less than 2**30.
+    nest : bool, optional
         if True, assume NESTED pixel ordering, otherwise, RING pixel ordering
-    indexes: list of indexes to use. With None, all indexes are used. This
-        allows to build the graph only on a subpart of the sphere
-        (default None, all sphere)
+    indexes : list of int, optional
+        List of indexes to use. This allows to build the graph from a part of
+        the sphere only. If None, the default, the whole sphere is used.
+    dtype : data-type, optional
+        The desired data type of the weight matrix.
     '''
 
-    npix = nside**2 * 12  # number of pixels
-    pix = range(npix)
-
     if indexes is None:
-        indexes = pix
+        indexes = range(nside**2 * 12)
+    npix = len(indexes)  # Number of pixels.
 
-    # 1) get the coordinates
-    [x, y, z] = hp.pix2vec(nside, pix, nest=nest)
+    # Get the coordinates.
+    x, y, z = hp.pix2vec(nside, indexes, nest=nest)
     coords = np.vstack([x, y, z]).transpose()
+    coords = np.asarray(coords, dtype=dtype)
 
-    # 2) get the 8 neighboors
-    [theta, phi] = hp.pix2ang(nside, indexes, nest=nest)
-    nused = theta.shape[0]
+    # Get the 8 neighbors.
+    neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
 
-    index_neighboor = hp.pixelfunc.get_all_neighbours(
-        nside, theta=theta, phi=phi, nest=nest)
+    # Indices of non-zero values in the adjacency matrix.
+    col_index = neighbors.T.reshape((npix * 8))
+    row_index = np.repeat(indexes, 8)
 
-    # 3) build the adjacency matrix
-    # The following code is equivalent to the following one
-    # (it returns numpy array though)
-    # row_index = []
-    # col_index = []
-    # for row in pix:
-    #     for col in index_neighboor[:,row]:
-    #         if col>=0:
-    #             row_index.append(row)
-    #             col_index.append(col)
-    col_index = np.reshape(index_neighboor.T, [nused * 8])
-    row_index = np.reshape(
-        np.reshape(np.array(list(indexes) * 8), [8, nused]).T, [8 * nused])
-    good_index = col_index >= 0
-    col_index = col_index[good_index]
-    row_index = row_index[good_index]
+    # Remove pixels that are out of our indexes of interest (part of sphere).
+    keep = (col_index < npix)
 
-    dist = np.array(
-        [
-            sum((coords[row] - coords[col])**2)
-            for row, col in zip(row_index, col_index)
-        ],
-        dtype=dtype)
+    # Remove fake neighbors (some pixels have less than 8).
+    keep &= (col_index >= 0)
+    col_index = col_index[keep]
+    row_index = row_index[keep]
 
-    mean_dist = np.mean(dist)
-    w = np.exp(-dist / (2 * mean_dist))
-    W = sparse.csr_matrix(
-        (w, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+    # Compute Euclidean distances between neighbors.
+    distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
+    # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
 
-    W = W[list(indexes), :]
-    W = W[:, list(indexes)]
+    # Compute similarities / edge weights.
+    kernel_width = np.mean(distances)
+    weights = np.exp(-distances / (2 * kernel_width))
 
+    # Build the sparse matrix.
+    W = sparse.csr_matrix((weights, (row_index, col_index)),
+                          shape=(npix, npix), dtype=dtype)
     return W
 
 
@@ -91,9 +79,9 @@ def healpix_graph(nside=16,
     """Build a healpix graph using the pygsp from NSIDE."""
     from pygsp import graphs
     # 1) get the coordinates
-    npix = nside**2 * 12  # number of pixels
+    npix = hp.nside2npix(nside)  # number of pixels: 12 * nside**2
     pix = range(npix)
-    [x, y, z] = hp.pix2vec(nside, pix, nest=nest)
+    x, y, z = hp.pix2vec(nside, pix, nest=nest)
     coords = np.vstack([x, y, z]).transpose()
     # 2) computing the weight matrix
     W = healpix_weightmatrix(

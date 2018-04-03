@@ -204,8 +204,8 @@ def plot_filters_gnomonic(filters, order=10, ind=0):
     sx = int(np.ceil(filters.Nf / sy))
     maps = filters.localize(ind, order=order)
     for i, map in enumerate(maps.T):
-        title = 'Filter {}'.format(i)
-        hp.gnomview(map, nest=True, rot=rot, reso=reso, sub=(sx, sy, i+1), title=title, notext=True)
+        hp.gnomview(map, nest=True, rot=rot, reso=reso, sub=(sx, sy, i+1),
+                    title='Filter {}'.format(i), notext=True)
 
 
 def plot_filters_section(filters, order=10):
@@ -219,7 +219,11 @@ def plot_filters_section(filters, order=10):
 
     # Localize the filter in the middle of the equator.
     ind = index[npix // 2]
-    conv = filters.localize(ind, order=order)
+    maps = filters.localize(ind, order=order)
+    if maps.shape[0] == filters.G.N:
+        # FIXME: old signal shape when not using Chebyshev filters.
+        shape = (filters.n_features_in, filters.n_features_out, filters.G.N)
+        maps = maps.T.reshape(shape)
 
     # Get the value on the equator back.
     equator_part = range(npix//2-order, npix//2+order)
@@ -227,15 +231,23 @@ def plot_filters_section(filters, order=10):
     # Make the x axis: angular position of the nodes in degree.
     angle = hp.pix2ang(nside, equator_part, nest=False)[1]
     angle -= abs(angle[-1] + angle[0]) / 2
-    angle = angle / np.pi / 2 * 360
+    angle = angle / (2 * np.pi) * 360
 
     # Plot everything.
-    sy = int(np.ceil(np.sqrt(filters.Nf)))
-    sx = int(np.ceil(filters.Nf / sy))
-    fig, axes = plt.subplots(sx, sy)
-    for i, (y, ax) in enumerate(zip(conv[index[equator_part]].T, axes.flatten())):
-        ax.plot(angle, y)
-        ax.set_title('Filter {}'.format(i))
-        # ax.set_xlabel('Degree')
-    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.Nf), y=0.94)
+    nrows, ncols = filters.n_features_in, filters.n_features_out
+    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
+                             squeeze=False, sharex='col', sharey='row')
+    ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
+    for row in range(nrows):
+        for col in range(ncols):
+            map = maps[row, col, index[equator_part]]
+            axes[row, col].plot(angle, map)
+            axes[row, col].set_ylim(ymin, ymax)
+            if row == nrows - 1:
+                #axes[row, col].xaxis.set_ticks_position('top')
+                #axes[row, col].invert_yaxis()
+                axes[row, col].set_xlabel('out map {}'.format(col))
+            if col == 0:
+                axes[row, col].set_ylabel('in map {}'.format(row))
+    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
     return fig

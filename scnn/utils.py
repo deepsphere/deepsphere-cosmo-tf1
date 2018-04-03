@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+import matplotlib.pyplot as plt
 import healpy as hp
 
 
@@ -192,3 +193,49 @@ def print_error(model, x, labels, name):
     pred = model.predict(x)
     error = sum(np.abs(pred - labels)) / len(labels)
     print('{} error: {:.2%}'.format(name, error))
+
+
+def plot_filters_gnomonic(filters, order=10, ind=0):
+    """Plot all filters in a filterbank in Gnomonic projection."""
+    nside = hp.npix2nside(filters.G.N)
+    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
+    rot = hp.pix2ang(nside=nside, ipix=ind, nest=True, lonlat=True)
+    sy = int(np.ceil(np.sqrt(filters.Nf)))
+    sx = int(np.ceil(filters.Nf / sy))
+    maps = filters.localize(ind, order=order)
+    for i, map in enumerate(maps.T):
+        title = 'Filter {}'.format(i)
+        hp.gnomview(map, nest=True, rot=rot, reso=reso, sub=(sx, sy, i+1), title=title, notext=True)
+
+
+def plot_filters_section(filters, order=10):
+    """Plot the sections of all filters in a filterbank."""
+
+    nside = hp.npix2nside(filters.G.N)
+    npix = hp.nside2npix(nside)
+
+    # Create an inverse mapping from nest to ring.
+    index = hp.reorder(range(npix), n2r=True)
+
+    # Localize the filter in the middle of the equator.
+    ind = index[npix // 2]
+    conv = filters.localize(ind, order=order)
+
+    # Get the value on the equator back.
+    equator_part = range(npix//2-order, npix//2+order)
+
+    # Make the x axis: angular position of the nodes in degree.
+    angle = hp.pix2ang(nside, equator_part, nest=False)[1]
+    angle -= abs(angle[-1] + angle[0]) / 2
+    angle = angle / np.pi / 2 * 360
+
+    # Plot everything.
+    sy = int(np.ceil(np.sqrt(filters.Nf)))
+    sx = int(np.ceil(filters.Nf / sy))
+    fig, axes = plt.subplots(sx, sy)
+    for i, (y, ax) in enumerate(zip(conv[index[equator_part]].T, axes.flatten())):
+        ax.plot(angle, y)
+        ax.set_title('Filter {}'.format(i))
+        # ax.set_xlabel('Degree')
+    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.Nf), y=0.94)
+    return fig

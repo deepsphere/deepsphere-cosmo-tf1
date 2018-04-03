@@ -225,6 +225,10 @@ def plot_filters_section(filters, order=10):
     nrows, ncols = filters.n_features_in, filters.n_features_out
     fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
                              squeeze=False, sharex='col', sharey='row')
+    if nrows == 1:
+        maps = np.expand_dims(maps, 0)
+    if ncols == 1:
+        maps = np.expand_dims(maps, 1)
     ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
     for row in range(nrows):
         for col in range(ncols):

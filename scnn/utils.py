@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+import matplotlib.pyplot as plt
 import healpy as hp
 
 
@@ -8,64 +9,52 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
 
     Parameters
     ----------
-    nside: int, scalar or array-like
-        The healpix nside parameter, must be a power of 2, less than 2**30
-    nest: bool, optional
+    nside : int
+        The healpix nside parameter, must be a power of 2, less than 2**30.
+    nest : bool, optional
         if True, assume NESTED pixel ordering, otherwise, RING pixel ordering
-    indexes: list of indexes to use. With None, all indexes are used. This
-        allows to build the graph only on a subpart of the sphere
-        (default None, all sphere)
+    indexes : list of int, optional
+        List of indexes to use. This allows to build the graph from a part of
+        the sphere only. If None, the default, the whole sphere is used.
+    dtype : data-type, optional
+        The desired data type of the weight matrix.
     '''
 
-    npix = nside**2 * 12  # number of pixels
-    pix = range(npix)
-
     if indexes is None:
-        indexes = pix
+        indexes = range(nside**2 * 12)
+    npix = len(indexes)  # Number of pixels.
 
-    # 1) get the coordinates
-    [x, y, z] = hp.pix2vec(nside, pix, nest=nest)
+    # Get the coordinates.
+    x, y, z = hp.pix2vec(nside, indexes, nest=nest)
     coords = np.vstack([x, y, z]).transpose()
+    coords = np.asarray(coords, dtype=dtype)
 
-    # 2) get the 8 neighboors
-    [theta, phi] = hp.pix2ang(nside, indexes, nest=nest)
-    nused = theta.shape[0]
+    # Get the 8 neighbors.
+    neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
 
-    index_neighboor = hp.pixelfunc.get_all_neighbours(
-        nside, theta=theta, phi=phi, nest=nest)
+    # Indices of non-zero values in the adjacency matrix.
+    col_index = neighbors.T.reshape((npix * 8))
+    row_index = np.repeat(indexes, 8)
 
-    # 3) build the adjacency matrix
-    # The following code is equivalent to the following one
-    # (it returns numpy array though)
-    # row_index = []
-    # col_index = []
-    # for row in pix:
-    #     for col in index_neighboor[:,row]:
-    #         if col>=0:
-    #             row_index.append(row)
-    #             col_index.append(col)
-    col_index = np.reshape(index_neighboor.T, [nused * 8])
-    row_index = np.reshape(
-        np.reshape(np.array(list(indexes) * 8), [8, nused]).T, [8 * nused])
-    good_index = col_index >= 0
-    col_index = col_index[good_index]
-    row_index = row_index[good_index]
+    # Remove pixels that are out of our indexes of interest (part of sphere).
+    keep = (col_index < npix)
 
-    dist = np.array(
-        [
-            sum((coords[row] - coords[col])**2)
-            for row, col in zip(row_index, col_index)
-        ],
-        dtype=dtype)
+    # Remove fake neighbors (some pixels have less than 8).
+    keep &= (col_index >= 0)
+    col_index = col_index[keep]
+    row_index = row_index[keep]
 
-    mean_dist = np.mean(dist)
-    w = np.exp(-dist / (2 * mean_dist))
-    W = sparse.csr_matrix(
-        (w, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+    # Compute Euclidean distances between neighbors.
+    distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
+    # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
 
-    W = W[list(indexes), :]
-    W = W[:, list(indexes)]
+    # Compute similarities / edge weights.
+    kernel_width = np.mean(distances)
+    weights = np.exp(-distances / (2 * kernel_width))
 
+    # Build the sparse matrix.
+    W = sparse.csr_matrix((weights, (row_index, col_index)),
+                          shape=(npix, npix), dtype=dtype)
     return W
 
 
@@ -90,9 +79,9 @@ def healpix_graph(nside=16,
     """Build a healpix graph using the pygsp from NSIDE."""
     from pygsp import graphs
     # 1) get the coordinates
-    npix = nside**2 * 12  # number of pixels
+    npix = hp.nside2npix(nside)  # number of pixels: 12 * nside**2
     pix = range(npix)
-    [x, y, z] = hp.pix2vec(nside, pix, nest=nest)
+    x, y, z = hp.pix2vec(nside, pix, nest=nest)
     coords = np.vstack([x, y, z]).transpose()
     # 2) computing the weight matrix
     W = healpix_weightmatrix(
@@ -192,3 +181,65 @@ def print_error(model, x, labels, name):
     pred = model.predict(x)
     error = sum(np.abs(pred - labels)) / len(labels)
     print('{} error: {:.2%}'.format(name, error))
+
+
+def plot_filters_gnomonic(filters, order=10, ind=0):
+    """Plot all filters in a filterbank in Gnomonic projection."""
+    nside = hp.npix2nside(filters.G.N)
+    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
+    rot = hp.pix2ang(nside=nside, ipix=ind, nest=True, lonlat=True)
+    sy = int(np.ceil(np.sqrt(filters.Nf)))
+    sx = int(np.ceil(filters.Nf / sy))
+    maps = filters.localize(ind, order=order)
+    for i, map in enumerate(maps.T):
+        hp.gnomview(map, nest=True, rot=rot, reso=reso, sub=(sx, sy, i+1),
+                    title='Filter {}'.format(i), notext=True)
+
+
+def plot_filters_section(filters, order=10):
+    """Plot the sections of all filters in a filterbank."""
+
+    nside = hp.npix2nside(filters.G.N)
+    npix = hp.nside2npix(nside)
+
+    # Create an inverse mapping from nest to ring.
+    index = hp.reorder(range(npix), n2r=True)
+
+    # Localize the filter in the middle of the equator.
+    ind = index[npix // 2]
+    maps = filters.localize(ind, order=order)
+    if maps.shape[0] == filters.G.N:
+        # FIXME: old signal shape when not using Chebyshev filters.
+        shape = (filters.n_features_in, filters.n_features_out, filters.G.N)
+        maps = maps.T.reshape(shape)
+
+    # Get the value on the equator back.
+    equator_part = range(npix//2-order, npix//2+order)
+
+    # Make the x axis: angular position of the nodes in degree.
+    angle = hp.pix2ang(nside, equator_part, nest=False)[1]
+    angle -= abs(angle[-1] + angle[0]) / 2
+    angle = angle / (2 * np.pi) * 360
+
+    # Plot everything.
+    nrows, ncols = filters.n_features_in, filters.n_features_out
+    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
+                             squeeze=False, sharex='col', sharey='row')
+    if nrows == 1:
+        maps = np.expand_dims(maps, 0)
+    if ncols == 1:
+        maps = np.expand_dims(maps, 1)
+    ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
+    for row in range(nrows):
+        for col in range(ncols):
+            map = maps[row, col, index[equator_part]]
+            axes[row, col].plot(angle, map)
+            axes[row, col].set_ylim(ymin, ymax)
+            if row == nrows - 1:
+                #axes[row, col].xaxis.set_ticks_position('top')
+                #axes[row, col].invert_yaxis()
+                axes[row, col].set_xlabel('out map {}'.format(col))
+            if col == 0:
+                axes[row, col].set_ylabel('in map {}'.format(row))
+    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
+    return fig

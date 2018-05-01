@@ -206,7 +206,7 @@ def print_error(model, x, labels, name):
     return error
 
 
-def plot_filters_gnomonic(filters, order=10, ind=0):
+def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}'):
     """Plot all filters in a filterbank in Gnomonic projection."""
     nside = hp.npix2nside(filters.G.N)
     reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
@@ -235,7 +235,7 @@ def plot_filters_gnomonic(filters, order=10, ind=0):
         for col in range(ncols):
             map = maps[row, col, :]
             hp.gnomview(map.flatten(), nest=True, rot=rot, reso=reso, sub=(nrows, ncols, col+row*ncols+1),
-                    title='Filter {}->{}'.format(row, col), notext=True)
+                    title=title.format(row, col), notext=True)
             # if row == nrows - 1:
             #     #axes[row, col].xaxis.set_ticks_position('top')
             #     #axes[row, col].invert_yaxis()
@@ -246,7 +246,11 @@ def plot_filters_gnomonic(filters, order=10, ind=0):
     # return fig
 
 
-def plot_filters_section(filters, order=10):
+def plot_filters_section(filters,
+                         order=10,
+                         xlabel='out map {}',
+                         ylabel='in map {}',
+                         title='Sections of the {} filters in the filterbank'):
     """Plot the sections of all filters in a filterbank."""
 
     nside = hp.npix2nside(filters.G.N)
@@ -276,7 +280,7 @@ def plot_filters_section(filters, order=10):
     angle = angle / (2 * np.pi) * 360
 
     # Plot everything.
-    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
+    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 12/ncols*nrows),
                              squeeze=False, sharex='col', sharey='row')
 
     ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
@@ -288,10 +292,10 @@ def plot_filters_section(filters, order=10):
             if row == nrows - 1:
                 #axes[row, col].xaxis.set_ticks_position('top')
                 #axes[row, col].invert_yaxis()
-                axes[row, col].set_xlabel('out map {}'.format(col))
+                axes[row, col].set_xlabel(xlabel.format(col))
             if col == 0:
-                axes[row, col].set_ylabel('in map {}'.format(row))
-    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
+                axes[row, col].set_ylabel(ylabel.format(row))
+    fig.suptitle(title.format(filters.n_filters))#, y=0.90)
     return fig
 
 

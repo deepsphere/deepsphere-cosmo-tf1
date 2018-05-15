@@ -1,6 +1,11 @@
-import itertools
 import numpy as np
 
+from itertools import cycle
+# To handle python 2
+try:
+    from itertools import zip_longest as zip_longest
+except:
+    from itertools import izip_longest as zip_longest
 
 class LabeledDataset(object):
 
@@ -45,9 +50,9 @@ class LabeledDataset(object):
         return self.__iter__(batch_size)
 
     def __iter__(self, batch_size=1):
-        data_iter = grouper(itertools.cycle(self._X), batch_size)
-        label_iter = grouper(itertools.cycle(self._label), batch_size)
-        for data, label in itertools.zip_longest(data_iter, label_iter):
+        data_iter = grouper(cycle(self._X), batch_size)
+        label_iter = grouper(cycle(self._label), batch_size)
+        for data, label in zip_longest(data_iter, label_iter):
             data, label = np.array(data), np.array(label)
             if self._transform:
                 yield self._transform(data), label
@@ -94,9 +99,9 @@ class LabeledDatasetWithNoise(LabeledDataset):
 
     def __iter__(self, batch_size=1):
         curr_it = 0
-        data_iter = grouper(itertools.cycle(self._X), batch_size)
-        label_iter = grouper(itertools.cycle(self._label), batch_size)
-        for data, label in itertools.zip_longest(data_iter, label_iter):
+        data_iter = grouper(cycle(self._X), batch_size)
+        label_iter = grouper(cycle(self._label), batch_size)
+        for data, label in zip_longest(data_iter, label_iter):
             if curr_it < self._nit:
                 level = self._sl + curr_it/self._nit * (self._el - self._sl)
             else:
@@ -112,4 +117,4 @@ def grouper(iterable, n, fillvalue=None):
     """
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
-    return itertools.zip_longest(fillvalue=fillvalue, *args)
+    return zip_longest(fillvalue=fillvalue, *args)

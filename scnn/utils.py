@@ -1,6 +1,9 @@
+from __future__ import division   
+
 import numpy as np
 from scipy import sparse
 import healpy as hp
+from builtins import range
 
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):

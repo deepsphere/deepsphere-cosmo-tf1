@@ -329,3 +329,20 @@ def get_index_equator(nside, radius):
     return index_equator, center
 
 
+def psd(x):
+    '''Spherical Power Spectral Densities'''
+    if len(x.shape) == 2 and x.shape[1] > 1:
+        return np.stack([psd(x[ind, ]) for ind in range(len(x))])
+    hatx = hp.map2alm(hp.reorder(x, n2r=True))
+    return hp.alm2cl(hatx)
+
+
+def psd_unseen(x, Nside=1024):
+    '''Spherical Power Spectral Densities for incomplete spherical data'''
+    if len(x.shape) == 2 and x.shape[1] > 1:
+        return np.stack([psd_unseen(x[ind, ]) for ind in range(len(x))])
+    y = np.zeros(shape=[hp.nside2npix(Nside)])
+    y[:] = hp.UNSEEN
+    y[:len(x)] = x
+    hatx = hp.map2alm(hp.reorder(y, n2r=True))
+    return hp.alm2cl(hatx)

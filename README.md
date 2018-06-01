@@ -21,9 +21,14 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
    ```sh
    pip install -r requirements.txt
    ```
+
    **Note**: if you won't be working with a GPU, comment the
    `tensorflow-gpu==1.6.0` line in `requirements.txt` and uncomment the
    `tensorflow==1.6.0` line.
+
+   **Note**: The code has been developed and tested with Python 3.5 and 3.6. It
+   should work on Python 2.7 with `requirements_py27.txt`. Please send a PR if
+   you encounter an issue.
 
 3. Play with the Jupyter notebooks.
    ```sh

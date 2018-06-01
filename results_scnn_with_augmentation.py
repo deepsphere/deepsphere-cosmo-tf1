@@ -12,10 +12,11 @@ from sklearn.model_selection import train_test_split
 from scnn import models, utils
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 
+sigma = 3
 
 def get_testing_dataset(order, sigma_noise, std_xraw):
-    ds1 = np.load('data/same_psd_testing/smoothed_class1.npz')['arr_0']
-    ds2 = np.load('data/same_psd_testing/smoothed_class2.npz')['arr_0']
+    ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
+    ds2 = np.load('data/same_psd_testing/smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
 
     datasample = dict()
     datasample['class1'] = np.vstack(
@@ -41,12 +42,12 @@ def single_experiment(order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_1arcmin_{}noise_{}order'.format(
-        Nside, sigma_noise, order)
+    EXP_NAME = '40sim_{}sides_1arcmin_{}noise_{}order_{}sigma'.format(
+        Nside, sigma_noise, order, sigma)
     data_path = 'data/same_psd/'
 
-    ds1 = np.load(data_path + 'smoothed_class1.npz')['arr_0']
-    ds2 = np.load(data_path + 'smoothed_class2.npz')['arr_0']
+    ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
+    ds2 = np.load(data_path + 'smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
     datasample = dict()
     datasample['class1'] = np.vstack(
         [utils.hp_split(el, order=order) for el in ds1])
@@ -198,7 +199,10 @@ def single_experiment(order, sigma_noise):
 if __name__ == '__main__':
 
     orders = [1, 2, 4]
-    sigma_noises = [1, 2, 3, 4, 5]
+    if sigma==3:
+        sigma_noises = [0, 0.5, 1, 1.5, 2]
+    else:
+        sigma_noises = [1, 2, 3, 4, 5]
 
     path = 'results/scnn/'
 
@@ -208,4 +212,4 @@ if __name__ == '__main__':
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
             results[i, j] = single_experiment(order, sigma_noise)
-            np.savez(path + 'scnn_results', [results])
+            np.savez(path + 'scnn_results_sigma{}'.format(sigma), [results])

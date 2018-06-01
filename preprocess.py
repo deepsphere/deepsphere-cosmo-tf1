@@ -6,6 +6,7 @@ import os
 import numpy as np
 import healpy as hp
 
+sigma = 2
 
 def process_same_psd(inpath, outpath):
 
@@ -58,11 +59,10 @@ def pre_smoothing(inpath, outpath):
         elif '0p31' in filename:
             ds2.append(img)
 
-    ds1 = [gaussian_smoothing(el, 1, nest=True).astype(np.float32) for el in ds1]
-    ds2 = [gaussian_smoothing(el, 1, nest=True).astype(np.float32) for el in ds2]
-
-    np.savez(os.path.join(outpath, 'smoothed_class1'), ds1)
-    np.savez(os.path.join(outpath, 'smoothed_class2'), ds2)
+    ds1 = [gaussian_smoothing(el, sigma, nest=True).astype(np.float32) for el in ds1]
+    ds2 = [gaussian_smoothing(el, sigma, nest=True).astype(np.float32) for el in ds2]
+    np.savez(os.path.join(outpath, 'smoothed_class1_sigma{}'.format(sigma)), ds1)
+    np.savez(os.path.join(outpath, 'smoothed_class2_sigma{}'.format(sigma)), ds2)
 
 if __name__ == '__main__':
     process_same_psd(inpath='data/data_v5/', outpath='data/same_psd/')

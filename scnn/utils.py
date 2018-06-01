@@ -1,4 +1,4 @@
-from __future__ import division   
+from __future__ import division
 
 import numpy as np
 from scipy import sparse
@@ -145,10 +145,10 @@ def build_laplacians(nsides, indexes=None):
 
 
 def nside2indexes(nsides, order):
-    """ 
+    """
     Return list of indexes from nside given a specific order
 
-    This function return the necessary indexes for a scnn when 
+    This function return the necessary indexes for a scnn when
     only a part of the sphere is considered.
 
     Arguments

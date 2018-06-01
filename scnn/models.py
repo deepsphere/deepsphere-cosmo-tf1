@@ -3,7 +3,7 @@ This module defines the graph convolutional neural network.
 
 Most of the code is based on https://github.com/mdeff/cnn_graph/.
 """
-from __future__ import division   
+from __future__ import division
 
 import os
 import time
@@ -18,15 +18,16 @@ from builtins import range
 
 from . import utils
 
-# For python 2 compatibility
-if hasattr(time,'process_time'):
+
+# Python 2 compatibility.
+if hasattr(time, 'process_time'):
     process_time = time.process_time
 else:
     import warnings
-    warnings.warn('The CPU time is not working with Python 2')
+    warnings.warn('The CPU time is not working with Python 2.')
     def process_time():
         return np.nan
-    
+
 
 class base_model(object):
     """Common methods for all models."""

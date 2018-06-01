@@ -3,6 +3,7 @@ This module defines the graph convolutional neural network.
 
 Most of the code is based on https://github.com/mdeff/cnn_graph/.
 """
+from __future__ import division
 
 import os
 import time
@@ -13,8 +14,19 @@ import numpy as np
 from scipy import sparse
 import sklearn
 import tensorflow as tf
+from builtins import range
 
 from . import utils
+
+
+# Python 2 compatibility.
+if hasattr(time, 'process_time'):
+    process_time = time.process_time
+else:
+    import warnings
+    warnings.warn('The CPU time is not working with Python 2.')
+    def process_time():
+        return np.nan
 
 
 class base_model(object):
@@ -72,7 +84,7 @@ class base_model(object):
         labels: size N
             N: number of signals (samples)
         """
-        t_process, t_wall = time.process_time(), time.time()
+        t_process, t_wall = process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
         #print(predictions)
         ncorrects = sum(predictions == labels)
@@ -81,11 +93,11 @@ class base_model(object):
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
-            string += '\ntime: {:.0f}s (wall {:.0f}s)'.format(time.process_time()-t_process, time.time()-t_wall)
+            string += '\ntime: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall)
         return string, accuracy, f1, loss
 
     def fit(self, train_dataset, val_dataset):
-        t_process, t_wall = time.process_time(), time.time()
+        t_process, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
@@ -124,7 +136,7 @@ class base_model(object):
                 accuracies.append(accuracy)
                 losses.append(loss)
                 print('  validation {}'.format(string))
-                print('  time: {:.0f}s (wall {:.0f}s)'.format(time.process_time()-t_process, time.time()-t_wall))
+                print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
@@ -343,7 +355,7 @@ class cgcnn(base_model):
                 num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name='', adam=True):
-        super().__init__()
+        super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
         assert len(L) == len(F) == len(K) == len(p)
@@ -568,6 +580,6 @@ class scnn(cgcnn):
     def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
 
         L, p = utils.build_laplacians(nsides, indexes=indexes)
-        super().__init__(L, F, K, p, batch_norm, M, **kwargs)
+        super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
 
 

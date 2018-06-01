@@ -20,9 +20,20 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
         The desired data type of the weight matrix.
     '''
 
+    if not nest:
+        raise NotImplementedError()
+
     if indexes is None:
         indexes = range(nside**2 * 12)
     npix = len(indexes)  # Number of pixels.
+    if npix >= (max(indexes)+1):
+        # If the user input is not consecutive nodes, we need to use a slower
+        # method.
+        usefast = True
+        indexes = range(npix)
+    else:
+        usefast = False
+        indexes = list(indexes)
 
     # Get the coordinates.
     x, y, z = hp.pix2vec(nside, indexes, nest=nest)
@@ -31,18 +42,25 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
 
     # Get the 8 neighbors.
     neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
-
     # Indices of non-zero values in the adjacency matrix.
     col_index = neighbors.T.reshape((npix * 8))
     row_index = np.repeat(indexes, 8)
 
     # Remove pixels that are out of our indexes of interest (part of sphere).
-    keep = (col_index < npix)
-
-    # Remove fake neighbors (some pixels have less than 8).
-    keep &= (col_index >= 0)
-    col_index = col_index[keep]
-    row_index = row_index[keep]
+    if usefast:
+        keep = (col_index < npix)
+        # Remove fake neighbors (some pixels have less than 8).
+        keep &= (col_index >= 0)
+        col_index = col_index[keep]
+        row_index = row_index[keep]
+    else:
+        col_index_set = set(indexes)
+        keep = [c in col_index_set for c in col_index]
+        inverse_map = [np.nan]*(nside**2 *12)
+        for i, index in enumerate(indexes):
+            inverse_map[index] = i
+        col_index = [inverse_map[el] for el in col_index[keep]]
+        row_index = [inverse_map[el] for el in row_index[keep]]
 
     # Compute Euclidean distances between neighbors.
     distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
@@ -78,16 +96,20 @@ def healpix_graph(nside=16,
                   dtype=np.float32):
     """Build a healpix graph using the pygsp from NSIDE."""
     from pygsp import graphs
+
+    if indexes is None:
+        indexes = range(nside**2 * 12)
+
     # 1) get the coordinates
     npix = hp.nside2npix(nside)  # number of pixels: 12 * nside**2
     pix = range(npix)
     x, y, z = hp.pix2vec(nside, pix, nest=nest)
-    coords = np.vstack([x, y, z]).transpose()
+    coords = np.vstack([x, y, z]).transpose()[indexes]
     # 2) computing the weight matrix
     W = healpix_weightmatrix(
         nside=nside, nest=nest, indexes=indexes, dtype=dtype)
     # 3) building the graph
-    G = graphs.Graph(W, gtype='healpix', lap_type=lap_type, coords=coords)
+    G = graphs.Graph(W, gtype='Healpix, Nside={}'.format(nside), lap_type=lap_type, coords=coords)
     return G
 
 
@@ -181,22 +203,54 @@ def print_error(model, x, labels, name):
     pred = model.predict(x)
     error = sum(np.abs(pred - labels)) / len(labels)
     print('{} error: {:.2%}'.format(name, error))
+    return error
 
 
-def plot_filters_gnomonic(filters, order=10, ind=0):
+def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}'):
     """Plot all filters in a filterbank in Gnomonic projection."""
     nside = hp.npix2nside(filters.G.N)
     reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
     rot = hp.pix2ang(nside=nside, ipix=ind, nest=True, lonlat=True)
-    sy = int(np.ceil(np.sqrt(filters.Nf)))
-    sx = int(np.ceil(filters.Nf / sy))
+
     maps = filters.localize(ind, order=order)
-    for i, map in enumerate(maps.T):
-        hp.gnomview(map, nest=True, rot=rot, reso=reso, sub=(sx, sy, i+1),
-                    title='Filter {}'.format(i), notext=True)
+
+    nrows, ncols = filters.n_features_in, filters.n_features_out
+
+    if maps.shape[0] == filters.G.N:
+        # FIXME: old signal shape when not using Chebyshev filters.
+        shape = (nrows, ncols, filters.G.N)
+        maps = maps.T.reshape(shape)
+    else:
+        if nrows == 1:
+            maps = np.expand_dims(maps, 0)
+        if ncols == 1:
+            maps = np.expand_dims(maps, 1)
+
+    # Plot everything.
+    # fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
+    #                          squeeze=False, sharex='col', sharey='row')
+
+    # ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
+    for row in range(nrows):
+        for col in range(ncols):
+            map = maps[row, col, :]
+            hp.gnomview(map.flatten(), nest=True, rot=rot, reso=reso, sub=(nrows, ncols, col+row*ncols+1),
+                    title=title.format(row, col), notext=True)
+            # if row == nrows - 1:
+            #     #axes[row, col].xaxis.set_ticks_position('top')
+            #     #axes[row, col].invert_yaxis()
+            #     axes[row, col].set_xlabel('out map {}'.format(col))
+            # if col == 0:
+            #     axes[row, col].set_ylabel('in map {}'.format(row))
+    # fig.suptitle('Gnomoinc view of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
+    # return fig
 
 
-def plot_filters_section(filters, order=10):
+def plot_filters_section(filters,
+                         order=10,
+                         xlabel='out map {}',
+                         ylabel='in map {}',
+                         title='Sections of the {} filters in the filterbank'):
     """Plot the sections of all filters in a filterbank."""
 
     nside = hp.npix2nside(filters.G.N)
@@ -205,41 +259,90 @@ def plot_filters_section(filters, order=10):
     # Create an inverse mapping from nest to ring.
     index = hp.reorder(range(npix), n2r=True)
 
-    # Localize the filter in the middle of the equator.
-    ind = index[npix // 2]
+    # Get the index of the equator.
+    index_equator, ind = get_index_equator(nside, order)
+    nrows, ncols = filters.n_features_in, filters.n_features_out
+
     maps = filters.localize(ind, order=order)
     if maps.shape[0] == filters.G.N:
         # FIXME: old signal shape when not using Chebyshev filters.
-        shape = (filters.n_features_in, filters.n_features_out, filters.G.N)
+        shape = (nrows, ncols, filters.G.N)
         maps = maps.T.reshape(shape)
-
-    # Get the value on the equator back.
-    equator_part = range(npix//2-order, npix//2+order)
+    else:
+        if nrows == 1:
+            maps = np.expand_dims(maps, 0)
+        if ncols == 1:
+            maps = np.expand_dims(maps, 1)
 
     # Make the x axis: angular position of the nodes in degree.
-    angle = hp.pix2ang(nside, equator_part, nest=False)[1]
+    angle = hp.pix2ang(nside, index_equator, nest=True)[1]
     angle -= abs(angle[-1] + angle[0]) / 2
     angle = angle / (2 * np.pi) * 360
 
     # Plot everything.
-    nrows, ncols = filters.n_features_in, filters.n_features_out
-    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
+    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 12/ncols*nrows),
                              squeeze=False, sharex='col', sharey='row')
-    if nrows == 1:
-        maps = np.expand_dims(maps, 0)
-    if ncols == 1:
-        maps = np.expand_dims(maps, 1)
+
     ymin, ymax = 1.05*maps.min(), 1.05*maps.max()
     for row in range(nrows):
         for col in range(ncols):
-            map = maps[row, col, index[equator_part]]
-            axes[row, col].plot(angle, map)
+            map = maps[row, col, index_equator]
+            axes[row, col].plot(angle, map,'o-')
             axes[row, col].set_ylim(ymin, ymax)
             if row == nrows - 1:
                 #axes[row, col].xaxis.set_ticks_position('top')
                 #axes[row, col].invert_yaxis()
-                axes[row, col].set_xlabel('out map {}'.format(col))
+                axes[row, col].set_xlabel(xlabel.format(col))
             if col == 0:
-                axes[row, col].set_ylabel('in map {}'.format(row))
-    fig.suptitle('Sections of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
+                axes[row, col].set_ylabel(ylabel.format(row))
+    fig.suptitle(title.format(filters.n_filters))#, y=0.90)
     return fig
+
+
+def plot_index_filters_section(filters, order=10, rot=(180,0,180)):
+    """Plot the indexes used for the function `plot_filters_section`"""
+    nside = hp.npix2nside(filters.G.N)
+    npix = hp.nside2npix(nside)
+
+    index_equator, center = get_index_equator(nside, order)
+
+    sig = np.zeros([npix])
+    sig[index_equator] = 1
+    sig[center] = 2
+    hp.mollview(sig, nest=True, title='', cbar=False, rot=rot)
+
+
+def get_index_equator(nside, radius):
+    """Return some indexes on the equator and the center of the index."""
+    npix = hp.nside2npix(nside)
+
+    # Create an inverse mapping from nest to ring.
+    index = hp.reorder(range(npix), n2r=True)
+
+    # Center index
+    center = index[npix // 2]
+
+    # Get the value on the equator back.
+    equator_part = range(npix//2-radius, npix//2+radius+1)
+    index_equator = index[equator_part]
+
+    return index_equator, center
+
+
+def psd(x):
+    '''Spherical Power Spectral Densities'''
+    if len(x.shape) == 2 and x.shape[1] > 1:
+        return np.stack([psd(x[ind, ]) for ind in range(len(x))])
+    hatx = hp.map2alm(hp.reorder(x, n2r=True))
+    return hp.alm2cl(hatx)
+
+
+def psd_unseen(x, Nside=1024):
+    '''Spherical Power Spectral Densities for incomplete spherical data'''
+    if len(x.shape) == 2 and x.shape[1] > 1:
+        return np.stack([psd_unseen(x[ind, ]) for ind in range(len(x))])
+    y = np.zeros(shape=[hp.nside2npix(Nside)])
+    y[:] = hp.UNSEEN
+    y[:len(x)] = x
+    hatx = hp.map2alm(hp.reorder(y, n2r=True))
+    return hp.alm2cl(hatx)

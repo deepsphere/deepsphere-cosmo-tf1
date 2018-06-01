@@ -3,3 +3,7 @@ __pycache__
 /summaries/
 .ipynb_checkpoints
 .DS_Store
+figures/*
+results/*
+old_files/*
+*.pyc

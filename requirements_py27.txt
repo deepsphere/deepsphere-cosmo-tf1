@@ -7,7 +7,8 @@ tensorflow-gpu==1.6.0
 #tensorflow==1.6.0
 
 healpy==1.11.0
-PyGSP==0.5.1
+#PyGSP==0.5.1
+git+https://github.com/epfl-lts2/pygsp.git@717ceb58de936c2973f4447694cda56290552b3f#egg=PyGSP
 tqdm==4.19.6
 
 jupyter==1.0.0

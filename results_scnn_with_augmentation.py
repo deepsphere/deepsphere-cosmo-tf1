@@ -36,7 +36,7 @@ def get_testing_dataset(order, sigma, sigma_noise, std_xraw):
     return x_noise, labels
 
 
-def single_experiment(order, sigma, sigma_noise):
+def single_experiment(sigma, order, sigma_noise):
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     Nside = 1024
@@ -215,7 +215,8 @@ if __name__ == '__main__':
     results[:] = np.nan
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
-            res = single_experiment(order, sigma_noise)
+            print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+            res = single_experiment(sigma, order, sigma_noise)
             filepath = os.path.join(path, 'scnn_results_sigma{}'.format(sigma))
             new_data = (order, sigma_noise, res)
             if os.path.isfile(filepath+'.npy'):

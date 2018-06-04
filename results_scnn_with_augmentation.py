@@ -3,7 +3,6 @@
 import os
 import shutil
 import sys
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
 from sklearn import preprocessing
@@ -37,7 +36,6 @@ def get_testing_dataset(order, sigma, sigma_noise, std_xraw):
 
 
 def single_experiment(sigma, order, sigma_noise):
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     Nside = 1024
 
@@ -126,7 +124,7 @@ def single_experiment(sigma, order, sigma_noise):
         params['batch_size'] = 20
 
     elif order == 2:
-        params['num_epochs'] = 100
+        params['num_epochs'] = 1
         params['batch_size'] = 15
 
     elif order == 1:

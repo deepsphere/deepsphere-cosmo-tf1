@@ -12,9 +12,12 @@ from sklearn.model_selection import train_test_split
 from scnn import models, utils
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> f09c802a31822174bb0a25239aba436fde28e078
 
-def get_testing_dataset(order, sigma_noise, std_xraw):
+def get_testing_dataset(order, sigma, sigma_noise, std_xraw):
     ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
     ds2 = np.load('data/same_psd_testing/smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
 
@@ -37,13 +40,13 @@ def get_testing_dataset(order, sigma_noise, std_xraw):
     return x_noise, labels
 
 
-def single_experiment(order, sigma_noise):
+def single_experiment(order, sigma, sigma_noise):
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_1arcmin_{}noise_{}order_{}sigma'.format(
-        Nside, sigma_noise, order, sigma)
+    EXP_NAME = '40sim_{}sides_{}arcmin_{}noise_{}order_{}sigma'.format(
+        Nside, sigma, sigma_noise, order, sigma)
     data_path = 'data/same_psd/'
 
     ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
@@ -188,7 +191,7 @@ def single_experiment(order, sigma_noise):
     utils.print_error(model, x_noise_validation, labels_validation,
                       'Validation')
 
-    x_noise_test, labels_test = get_testing_dataset(order, sigma_noise,
+    x_noise_test, labels_test = get_testing_dataset(order, sigma, sigma_noise,
                                                     x_raw_std)
 
     e_test = utils.print_error(model, x_noise_test, labels_test, 'Test')
@@ -203,12 +206,11 @@ if __name__ == '__main__':
         orders = [sys.argv[2]]
         sigma_noises = [sys.argv[3]]
     else:
-        sigma = 3
         orders = [1, 2, 4]
-        if sigma==3:
-            sigma_noises = [0, 0.5, 1, 1.5, 2]
-        else:
-            sigma_noises = [1, 2, 3, 4, 5]
+        sigma = 3  # Amount of smoothing.
+        sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
+        # sigma = 1
+        # sigma_noises = [1, 2, 3, 4, 5]
 
     path = 'results/scnn/'
 

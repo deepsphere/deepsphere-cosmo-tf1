@@ -198,9 +198,9 @@ def single_experiment(sigma, order, sigma_noise):
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
-        sigma = sys.argv[1]
-        orders = [sys.argv[2]]
-        sigma_noises = [sys.argv[3]]
+        sigma = int(sys.argv[1])
+        orders = [int(sys.argv[2])]
+        sigma_noises = [float(sys.argv[3])]
     else:
         orders = [1, 2, 4]
         sigma = 3  # Amount of smoothing.

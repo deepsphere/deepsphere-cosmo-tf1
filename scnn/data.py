@@ -26,7 +26,7 @@ class LabeledDataset(object):
             self._p = np.arange(self._N)
         if not (len(label) == self._N):
             ValueError('Not the same number of samples and labels.')
-        self._X = X[self._p]
+        self._X = X.astype(np.float32)[self._p]
         self._label = label[self._p]
 
     def get_all_data(self):

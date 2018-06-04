@@ -149,7 +149,7 @@ def single_experiment(sigma, order, sigma_noise):
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
     elif order == 2:
-        params['F'] = [10, 80, 320, 40,
+        params['F'] = [10, 80, 160, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm

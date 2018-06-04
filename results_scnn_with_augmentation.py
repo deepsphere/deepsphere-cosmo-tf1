@@ -2,8 +2,8 @@
 
 import os
 import shutil
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+import sys
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
 from sklearn import preprocessing
@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from scnn import models, utils
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 
-sigma = 3
+
 
 def get_testing_dataset(order, sigma_noise, std_xraw):
     ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
@@ -123,15 +123,15 @@ def single_experiment(order, sigma_noise):
     params = dict()
     params['dir_name'] = EXP_NAME
     if order == 4:
-        params['num_epochs'] = 10
+        params['num_epochs'] = 50
         params['batch_size'] = 20
 
     elif order == 2:
-        params['num_epochs'] = 30
+        params['num_epochs'] = 100
         params['batch_size'] = 15
 
     elif order == 1:
-        params['num_epochs'] = 80
+        params['num_epochs'] = 200
         params['batch_size'] = 10
 
     else:
@@ -198,11 +198,17 @@ def single_experiment(order, sigma_noise):
 
 if __name__ == '__main__':
 
-    orders = [1, 2, 4]
-    if sigma==3:
-        sigma_noises = [0, 0.5, 1, 1.5, 2]
+    if len(sys.argv) > 1:
+        sigma = sys.argv[1]
+        orders = [sys.argv[2]]
+        sigma_noises = [sys.argv[3]]
     else:
-        sigma_noises = [1, 2, 3, 4, 5]
+        sigma = 3
+        orders = [1, 2, 4]
+        if sigma==3:
+            sigma_noises = [0, 0.5, 1, 1.5, 2]
+        else:
+            sigma_noises = [1, 2, 3, 4, 5]
 
     path = 'results/scnn/'
 
@@ -211,5 +217,12 @@ if __name__ == '__main__':
     results[:] = np.nan
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
-            results[i, j] = single_experiment(order, sigma_noise)
-            np.savez(path + 'scnn_results_sigma{}'.format(sigma), [results])
+            res = single_experiment(order, sigma_noise)
+            filepath = os.path.join(path, 'scnn_results_sigma{}'.format(sigma))
+            new_data = (order, sigma_noise, res)
+            if os.path.isfile(filepath+'.npy'):
+                results = np.load(filepath+'.npy')['data']
+            else:
+                results = []
+            results.append(new_data)
+            np.save(filepath, data=results)

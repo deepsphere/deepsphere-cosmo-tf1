@@ -346,3 +346,10 @@ def psd_unseen(x, Nside=1024):
     y[:len(x)] = x
     hatx = hp.map2alm(hp.reorder(y, n2r=True))
     return hp.alm2cl(hatx)
+
+
+def show_all_variables():
+    import tensorflow as tf
+    import tensorflow.contrib.slim as slim
+    model_vars = tf.trainable_variables()
+    slim.model_analyzer.analyze_vars(model_vars, print_info=True)

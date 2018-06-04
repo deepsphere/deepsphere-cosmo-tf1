@@ -1,6 +1,6 @@
 import itertools
 import numpy as np
-
+import functools
 
 class LabeledDataset(object):
 
@@ -45,8 +45,12 @@ class LabeledDataset(object):
         return self.__iter__(batch_size)
 
     def __iter__(self, batch_size=1):
-        data_iter = grouper(itertools.cycle(self._X), batch_size)
-        label_iter = grouper(itertools.cycle(self._label), batch_size)
+        if self.shuffled:
+            self._p = np.random.permutation(self._N)
+        else:
+            self._p = np.arange(self._N)        
+        data_iter = grouper(itertools.cycle(self._X[self._p]), batch_size)
+        label_iter = grouper(itertools.cycle(self._label[self._p]), batch_size)
         for data, label in itertools.zip_longest(data_iter, label_iter):
             data, label = np.array(data), np.array(label)
             if self._transform:
@@ -68,7 +72,7 @@ class LabeledDataset(object):
 class LabeledDatasetWithNoise(LabeledDataset):
 
     def __init__(self, X, label, shuffle=True, start_level=1, end_level=1,
-                 nit=1000, noise_func=np.random.randn):
+                 nit=1000, noise_func=None):
         '''Initialize a Dataset object with noise.
 
         Arguments
@@ -79,23 +83,30 @@ class LabeledDatasetWithNoise(LabeledDataset):
         * end_level : Final level of noise (default 1)
         * nit       : Number of iterations between the start level and the
                       final level (linear interpolation)
-        * noise_func: Noise function (default numpy.random.randn)
+        * noise_func: Noise function (default numpy.random.normal)
 
         '''
         self._nit = nit
         self._sl = start_level
         self._el = end_level
-        self._noise_func = noise_func
+        if noise_func is None:
+            self._noise_func = functools.partial(np.random.normal,loc=0.0,scale=1.)
+        else:
+            self._noise_func = noise_func
         self._curr_it = None
         super().__init__(X=X, label=label, shuffle=shuffle, transform=self._add_noise)
 
     def _add_noise(self, X, level):
-        return X + level * self._noise_func(*X.shape)
+        return X + level * self._noise_func(size=X.shape)
 
     def __iter__(self, batch_size=1):
         curr_it = 0
-        data_iter = grouper(itertools.cycle(self._X), batch_size)
-        label_iter = grouper(itertools.cycle(self._label), batch_size)
+        if self.shuffled:
+            self._p = np.random.permutation(self._N)
+        else:
+            self._p = np.arange(self._N)        
+        data_iter = grouper(itertools.cycle(self._X[self._p]), batch_size)
+        label_iter = grouper(itertools.cycle(self._label[self._p]), batch_size)
         for data, label in itertools.zip_longest(data_iter, label_iter):
             if curr_it < self._nit:
                 level = self._sl + curr_it/self._nit * (self._el - self._sl)

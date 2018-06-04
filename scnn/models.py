@@ -74,7 +74,6 @@ class base_model(object):
         """
         t_process, t_wall = time.process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
-        #print(predictions)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
@@ -238,18 +237,23 @@ class base_model(object):
                     loss_average = tf.identity(averages.average(loss), name='control')
             return loss, loss_average
 
-    def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False):
+    def training(self, loss, learning_rate, decay_steps, decay_rate=None, momentum=0.9, adam=False):
         """Adds to the loss model the Ops required to generate and apply gradients."""
+        if decay_rate is None:
+            if adam:
+                decay_rate = 0.999
+            else:
+                decay_rate = 0.95
         with tf.name_scope('training'):
             # Learning rate.
             global_step = tf.Variable(0, name='global_step', trainable=False)
-            if decay_rate != 1:
+            if (decay_rate != 1) and (not adam):
                 learning_rate = tf.train.exponential_decay(
                         learning_rate, global_step, decay_steps, decay_rate, staircase=True)
-            tf.summary.scalar('learning_rate', learning_rate)
+                tf.summary.scalar('learning_rate', learning_rate)
             # Optimizer.
             if adam:
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum)
+                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum, beta2=decay_rate)
             else:
                 if momentum == 0:
                     optimizer = tf.train.GradientDescentOptimizer(learning_rate)

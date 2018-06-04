@@ -201,18 +201,19 @@ if __name__ == '__main__':
         sigma = sys.argv[1]
         orders = [sys.argv[2]]
         sigma_noises = [sys.argv[3]]
+    
     else:
         orders = [1, 2, 4]
         sigma = 3  # Amount of smoothing.
         sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
         # sigma = 1
         # sigma_noises = [1, 2, 3, 4, 5]
-
+    print('sigma: ', sigma)
+    print('sigma_noises: ',sigma_noises)
+    print('orders: ', orders)
     path = 'results/scnn/'
 
     os.makedirs(path, exist_ok=True)
-    results = np.zeros([len(orders), len(sigma_noises)])
-    results[:] = np.nan
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
             res = single_experiment(order, sigma_noise)

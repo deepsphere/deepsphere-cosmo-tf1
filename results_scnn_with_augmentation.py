@@ -12,10 +12,6 @@ from sklearn.model_selection import train_test_split
 from scnn import models, utils
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 
-<<<<<<< HEAD
-
-=======
->>>>>>> f09c802a31822174bb0a25239aba436fde28e078
 
 def get_testing_dataset(order, sigma, sigma_noise, std_xraw):
     ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']

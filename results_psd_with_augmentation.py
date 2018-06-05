@@ -58,8 +58,8 @@ def err_svc_linear(x_train, label_train, x_test, label_test):
 def single_experiment(order, sigma, sigma_noise, path):
 
     Nside = 1024
-    EXP_NAME = '40sim_{}sides_{}arcmin_{}noise_{}order_{}sigma'.format(
-        Nside, sigma, sigma_noise, order, sigma)
+    EXP_NAME = '40sim_{}sides_{}arcmin_{}noise_{}order'.format(
+        Nside, sigma, sigma_noise, order)
 
     data_path = 'data/same_psd/'
     ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
@@ -79,8 +79,6 @@ def single_experiment(order, sigma, sigma_noise, path):
     x_raw = x_raw / x_raw_std  # Apply some normalization
     rs = np.random.RandomState(0)
     x_noise = x_raw + sigma_noise * rs.randn(*x_raw.shape)
-    cmin = np.min(x_raw)
-    cmax = np.max(x_raw)
 
     # Create the label vector.
     labels = np.zeros([x_raw.shape[0]], dtype=int)
@@ -102,7 +100,7 @@ def single_experiment(order, sigma, sigma_noise, path):
         start_level=sigma_noise,
         end_level=sigma_noise)
 
-    nloop = 1
+    nloop = 2
     ntrain = len(x_raw_train)
     N = ntrain * nloop
     nbatch = ntrain // 4
@@ -126,7 +124,8 @@ def single_experiment(order, sigma, sigma_noise, path):
         utils.psd_unseen(x_noise_validation, 1024) - x_trans_train_mean
     ) / x_trans_train_std
 
-    nsamples = list(ntrain // 12 * np.linspace(1, 12, num=12).astype(np.int))
+    nsamples = list(ntrain // 12 * np.linspace(1, 12*nloop, num=12*nloop).astype(np.int))
+
     err_train = np.zeros(shape=[len(nsamples)])
     err_validation = np.zeros(shape=[len(nsamples)])
     err_train[:] = np.nan

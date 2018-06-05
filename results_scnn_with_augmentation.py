@@ -3,7 +3,6 @@
 import os
 import shutil
 import sys
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
 from sklearn import preprocessing
@@ -151,7 +150,7 @@ def single_experiment(sigma, order, sigma_noise):
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
     elif order == 2:
-        params['F'] = [10, 80, 160, 40,
+        params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
@@ -217,11 +216,11 @@ if __name__ == '__main__':
         for j, sigma_noise in enumerate(sigma_noises):
             print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
             res = single_experiment(sigma, order, sigma_noise)
-            filepath = os.path.join(path, 'scnn_results_sigma{}'.format(sigma))
+            filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
             new_data = (order, sigma_noise, res)
-            if os.path.isfile(filepath+'.npy'):
-                results = np.load(filepath+'.npy')['data']
+            if os.path.isfile(filepath+'.npz'):
+                results = np.load(filepath+'.npz')['data']
             else:
                 results = []
             results.append(new_data)
-            np.save(filepath, data=results)
+            np.savey(filepath, data=results)

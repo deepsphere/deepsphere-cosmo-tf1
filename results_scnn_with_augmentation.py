@@ -60,7 +60,7 @@ def single_experiment(sigma, order, sigma_noise):
     x_raw_std = np.std(x_raw)
     x_raw = x_raw / x_raw_std
     rs = np.random.RandomState(0)
-    x_noise = x_raw + rs.normal(0, sigma_noise, size=x_raw.shape)
+    x_noise = x_raw + sigma_noise*rs.normal(0, 1, size=x_raw.shape)
     cmin = np.min(x_raw)
     cmax = np.max(x_raw)
     x_hist = utils.histogram(x_noise, cmin, cmax)

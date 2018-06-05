@@ -10,9 +10,10 @@ txtfile = '''#!/bin/bash -l
 
 module load daint-gpu
 module load cray-python
-module load TensorFlow/1.4.1-CrayGNU-17.12-cuda-8.0-python3
+module load TensorFlow/1.7.0-CrayGNU-17.12-cuda-8.0-python3
 
 source $HOME/scnn/bin/activate
+
 
 cd $SCRATCH/scnn/
 srun python results_scnn_with_augmentation.py {0} {1} {2}

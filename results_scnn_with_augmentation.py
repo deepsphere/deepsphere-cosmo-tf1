@@ -216,9 +216,9 @@ if __name__ == '__main__':
             print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
             res = single_experiment(sigma, order, sigma_noise)
             filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
-            new_data = (order, sigma_noise, res)
+            new_data = [order, sigma_noise, res]
             if os.path.isfile(filepath+'.npz'):
-                results = np.load(filepath+'.npz')['data']
+                results = np.load(filepath+'.npz')['data'].tolist()
             else:
                 results = []
             results.append(new_data)

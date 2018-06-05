@@ -16,6 +16,11 @@ import tensorflow as tf
 
 from . import utils
 
+def show_all_variables():
+    import tensorflow as tf
+    import tensorflow.contrib.slim as slim
+    model_vars = tf.trainable_variables()
+    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 class base_model(object):
     """Common methods for all models."""
@@ -402,6 +407,7 @@ class cgcnn(base_model):
         # Build the computational graph.
         self.build_graph(M_0)
 
+        show_all_variables()
 
     def chebyshev5(self, x, L, Fout, K):
         N, M, Fin = x.get_shape()

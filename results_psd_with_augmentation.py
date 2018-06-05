@@ -99,8 +99,10 @@ def single_experiment(order, sigma, sigma_noise, path):
         labels_train,
         start_level=sigma_noise,
         end_level=sigma_noise)
-
-    nloop = 2
+    if order==4:
+        nloop = 2
+    else:
+        nloop = 10
     ntrain = len(x_raw_train)
     N = ntrain * nloop
     nbatch = ntrain // 4
@@ -124,8 +126,11 @@ def single_experiment(order, sigma, sigma_noise, path):
         utils.psd_unseen(x_noise_validation, 1024) - x_trans_train_mean
     ) / x_trans_train_std
 
-    nsamples = list(ntrain // 12 * np.linspace(1, 12*nloop, num=12*nloop).astype(np.int))
-
+    if order==4:
+        nsamples = list(ntrain // 12 * np.linspace(1, 12*nloop, num=12*nloop).astype(np.int))
+    else:
+        nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))
+        nsamples += list(ntrain // 2 * np.linspace(1, 20, num=20).astype(np.int))
     err_train = np.zeros(shape=[len(nsamples)])
     err_validation = np.zeros(shape=[len(nsamples)])
     err_train[:] = np.nan

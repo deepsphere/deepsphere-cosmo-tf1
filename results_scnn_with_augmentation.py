@@ -124,7 +124,7 @@ def single_experiment(sigma, order, sigma_noise):
         params['batch_size'] = 20
 
     elif order == 2:
-        params['num_epochs'] = 1
+        params['num_epochs'] = 100
         params['batch_size'] = 15
 
     elif order == 1:
@@ -222,4 +222,4 @@ if __name__ == '__main__':
             else:
                 results = []
             results.append(new_data)
-            np.savey(filepath, data=results)
+            np.savez(filepath, data=results)

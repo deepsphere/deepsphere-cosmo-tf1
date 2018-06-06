@@ -25,6 +25,7 @@ def launch_simulation(sigma, order, sigma_noise):
     with open('launch.sh', 'w') as file:
         file.write(sbatch_txt)
     os.system("sbatch launch.sh")
+    os.remove('launch.sh')
 
 
 sigma = 3

@@ -165,7 +165,7 @@ def single_experiment(sigma, order, sigma_noise):
     params['M'] = [100, C]  # Output dimensionality of fully connected layers.
 
     # Optimization.
-    params['regularization'] = 1e-4
+    params['regularization'] = 5e-4
     params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
     params['decay_rate'] = 0.9

@@ -119,20 +119,6 @@ def single_experiment(sigma, order, sigma_noise):
 
     params = dict()
     params['dir_name'] = EXP_NAME
-    if order == 4:
-        params['num_epochs'] = 50
-        params['batch_size'] = 20
-
-    elif order == 2:
-        params['num_epochs'] = 100
-        params['batch_size'] = 15
-
-    elif order == 1:
-        params['num_epochs'] = 200
-        params['batch_size'] = 10
-
-    else:
-        raise ValueError('No parameters for this value of order.')
 
     params['eval_frequency'] = 10
 
@@ -144,16 +130,22 @@ def single_experiment(sigma, order, sigma_noise):
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
     if order == 4:
+        params['num_epochs'] = 50
+        params['batch_size'] = 20        
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
     elif order == 2:
+        params['num_epochs'] = 100
+        params['batch_size'] = 15
         params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
     elif order == 1:
+        params['num_epochs'] = 200
+        params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10, 10]  # Polynomial orders.
@@ -165,7 +157,7 @@ def single_experiment(sigma, order, sigma_noise):
     params['M'] = [100, C]  # Output dimensionality of fully connected layers.
 
     # Optimization.
-    params['regularization'] = 5e-4
+    params['regularization'] = 1e-5
     params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
     params['decay_rate'] = 0.9

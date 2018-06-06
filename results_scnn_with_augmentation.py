@@ -132,13 +132,17 @@ def single_experiment(sigma, order, sigma_noise):
     if order == 4:
         params['num_epochs'] = 50
         params['batch_size'] = 20        
+        params['decay_rate'] = 0.9
+
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
+
     elif order == 2:
         params['num_epochs'] = 100
         params['batch_size'] = 15
+        params['decay_rate'] = 0.95   
         params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
@@ -146,6 +150,7 @@ def single_experiment(sigma, order, sigma_noise):
     elif order == 1:
         params['num_epochs'] = 200
         params['batch_size'] = 10
+        params['decay_rate'] = 0.98
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10, 10]  # Polynomial orders.
@@ -157,10 +162,9 @@ def single_experiment(sigma, order, sigma_noise):
     params['M'] = [100, C]  # Output dimensionality of fully connected layers.
 
     # Optimization.
-    params['regularization'] = 3e-5
+    params['regularization'] = 1e-4
     params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
-    params['decay_rate'] = 0.9
     params['momentum'] = 0.9
     params['adam'] = True
     params['decay_steps'] = ntrain / params['batch_size']

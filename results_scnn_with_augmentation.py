@@ -39,7 +39,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_3'.format(
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_4'.format(
         Nside, sigma_noise, order, sigma)
     data_path = 'data/same_psd/'
 
@@ -92,7 +92,7 @@ def single_experiment(sigma, order, sigma_noise):
         labels_train,
         start_level=0,
         end_level=sigma_noise,
-        nit=len(labels_train) // 10)
+        nit=400)
     validation = LabeledDataset(x_noise_validation, labels_validation)
 
     if order == 4:
@@ -131,7 +131,7 @@ def single_experiment(sigma, order, sigma_noise):
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
     if order == 4:
         params['num_epochs'] = 50
-        params['batch_size'] = 20        
+        params['batch_size'] = 40        
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
@@ -139,7 +139,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     elif order == 2:
         params['num_epochs'] = 100
-        params['batch_size'] = 15
+        params['batch_size'] = 20
         params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
@@ -159,7 +159,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     # Optimization.
     params['decay_rate'] = 0.98
-    params['regularization'] = 3e-5
+    params['regularization'] = 1e-4
     params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
     params['momentum'] = 0.9
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         for j, sigma_noise in enumerate(sigma_noises):
             print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
             res = single_experiment(sigma, order, sigma_noise)
-            filepath = os.path.join(path, 'scnn_results_list_sigma{}_3'.format(sigma))
+            filepath = os.path.join(path, 'scnn_results_list_sigma{}_4'.format(sigma))
             new_data = [order, sigma_noise, res]
             if os.path.isfile(filepath+'.npz'):
                 results = np.load(filepath+'.npz')['data'].tolist()
@@ -216,3 +216,4 @@ if __name__ == '__main__':
                 results = []
             results.append(new_data)
             np.savez(filepath, data=results)
+

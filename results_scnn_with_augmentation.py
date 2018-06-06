@@ -39,7 +39,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_2'.format(
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_3'.format(
         Nside, sigma_noise, order, sigma)
     data_path = 'data/same_psd/'
 
@@ -159,7 +159,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     # Optimization.
     params['decay_rate'] = 0.98
-    params['regularization'] = 1e-4
+    params['regularization'] = 3e-5
     params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
     params['momentum'] = 0.9
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         for j, sigma_noise in enumerate(sigma_noises):
             print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
             res = single_experiment(sigma, order, sigma_noise)
-            filepath = os.path.join(path, 'scnn_results_list_sigma{}_2'.format(sigma))
+            filepath = os.path.join(path, 'scnn_results_list_sigma{}_3'.format(sigma))
             new_data = [order, sigma_noise, res]
             if os.path.isfile(filepath+'.npz'):
                 results = np.load(filepath+'.npz')['data'].tolist()

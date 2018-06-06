@@ -39,8 +39,8 @@ def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}arcmin_{}noise_{}order_{}sigma'.format(
-        Nside, sigma, sigma_noise, order, sigma)
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
+        Nside, sigma_noise, order, sigma)
     data_path = 'data/same_psd/'
 
     ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']

@@ -35,8 +35,8 @@ def get_testing_dataset(order, sigma, sigma_noise, x_raw_std):
     return x_noise, labels
 
 
-def err_svc_rbf(x_train, label_train, x_test, label_test):
-    clf = SVC(kernel='rbf')
+def err_svc_linear_single(C, x_train, label_train, x_test, label_test):
+    clf = LinearSVC(C=C)
     clf.fit(x_train, label_train)
     pred = clf.predict(x_train)
     error_train = sum(np.abs(pred - label_train)) / len(label_train)
@@ -46,16 +46,45 @@ def err_svc_rbf(x_train, label_train, x_test, label_test):
 
 
 def err_svc_linear(x_train, label_train, x_test, label_test):
-    clf = SVC(kernel='linear')
-    clf.fit(x_train, label_train)
-    pred = clf.predict(x_train)
-    error_train = sum(np.abs(pred - label_train)) / len(label_train)
-    pred = clf.predict(x_test)
-    error_test = sum(np.abs(pred - label_test)) / len(label_test)
+    Cs = np.logspace(-2,2,num=9)
+    parallel = True
+    if parallel:
+        num_workers = mp.cpu_count()//2 - 1
+        with mp.Pool(processes=num_workers) as pool:
+            func = functools.partial(
+                err_svc_linear_single, 
+                x_train=x_train, 
+                label_train=label_train, 
+                x_test=x_test, 
+                label_test=label_test)
+            results = pool.map(func, Cs)
+        errors_train = [r[0] for r in results]
+        errors_test = [r[1] for r in results]
+    else:
+        errors_train = []
+        errors_test = []
+        for C in Cs:
+            etr, ete = err_svc_linear_single(C, x_train, label_train, x_test, label_test)
+            errors_train.append(etr)
+            error_test.append(ete)
+            # clf = LinearSVC(C=C)
+            # clf.fit(x_train, label_train)
+            # pred = clf.predict(x_train)
+            # errors_train.append(sum(np.abs(pred - label_train)) / len(label_train))
+            # pred = clf.predict(x_test)
+            # errors_test.append(sum(np.abs(pred - label_test)) / len(label_test))
+    k = np.argmin(np.array(errors_test))
+    error_train = errors_train[k]
+    error_test = errors_test[k]
+    print('Optimal C: {}'.format(Cs[k]), flush=True)
+    if (k==0 or k==8) and error_test>0:
+        print('----------------\n WARNING -- k has a bad value! \n {}'.format(errors_test), flush=True)
     return error_train, error_test
 
 
 def single_experiment(order, sigma, sigma_noise, path):
+
+    print('Solve the PSD problem for sigma {}, order {}, noise {}'.format(sigma, order, sigma_noise), flush=True)
 
     Nside = 1024
     EXP_NAME = '40sim_{}sides_{}arcmin_{}noise_{}order'.format(
@@ -163,17 +192,31 @@ def single_experiment(order, sigma, sigma_noise, path):
 
 if __name__ == '__main__':
 
-    orders = [1, 2, 4]
-    sigma = 3  # Amount of smoothing.
-    sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
-    # sigma = 1
-    # sigma_noises = [1, 2, 3, 4, 5]
+    if len(sys.argv) > 1:
+        sigma = int(sys.argv[1])
+        orders = [int(sys.argv[2])]
+        sigma_noises = [float(sys.argv[3])]
+    else:
+        orders = [1, 2, 4]
+        sigma = 3  # Amount of smoothing.
+        sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
+        # sigma = 1
+        # sigma_noises = [1, 2, 3, 4, 5]
+    print('sigma: ', sigma)
+    print('sigma_noises: ',sigma_noises)
+    print('orders: ', orders)
     path = 'results/psd/'
 
     os.makedirs(path, exist_ok=True)
-    results = np.zeros([len(orders), len(sigma_noises)])
-    results[:] = np.nan
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
-            results[i, j] = single_experiment(order, sigma, sigma_noise, path)
-            np.savez(path + 'psd_results_sigma{}'.format(sigma), [results])
+            print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+            res = single_experiment(sigma, order, sigma_noise)
+            filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
+            new_data = [order, sigma_noise, res]
+            if os.path.isfile(filepath+'.npz'):
+                results = np.load(filepath+'.npz')['data'].tolist()
+            else:
+                results = []
+            results.append(new_data)
+            np.savez(filepath, data=results)

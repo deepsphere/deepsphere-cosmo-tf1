@@ -16,7 +16,7 @@ source $HOME/scnn/bin/activate
 
 
 cd $SCRATCH/scnn/
-srun python results_scnn_with_augmentation.py {0} {1} {2}
+srun python results_psd_with_augmentation.py {0} {1} {2}
 '''
 
 

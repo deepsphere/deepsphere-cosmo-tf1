@@ -88,7 +88,7 @@ def err_svc_linear(x_train, label_train, x_test, label_test):
     error_train = errors_train[k]
     error_test = errors_test[k]
     print('Optimal C: {}'.format(Cs[k]), flush=True)
-    if (k==0 or k==9) and error_test>0:
+    if (k==0 or k==8) and error_test>0:
         print('----------------\n WARNING -- k has a bad value! \n {}'.format(errors_test), flush=True)
     return error_train, error_test
 

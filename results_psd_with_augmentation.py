@@ -214,7 +214,7 @@ if __name__ == '__main__':
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
             print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
-            res = single_experiment(sigma, order, sigma_noise)
+            res = single_experiment(sigma, order, sigma_noise, path)
             filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
             new_data = [order, sigma_noise, res]
             if os.path.isfile(filepath+'.npz'):

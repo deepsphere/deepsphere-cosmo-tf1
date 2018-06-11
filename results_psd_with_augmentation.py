@@ -1,16 +1,19 @@
 # coding: utf-8
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+import shutil
+import sys
 
 import numpy as np
 import healpy as hp
 
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 
 from scnn import utils
 from scnn.data import LabeledDatasetWithNoise
+import multiprocessing as mp
+import functools
 
 def get_testing_dataset(order, sigma, sigma_noise, x_raw_std):
     ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']

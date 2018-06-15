@@ -97,7 +97,7 @@ def single_experiment(order, sigma, sigma_noise, path):
 
     Nside = 1024
     print('Solve the histogram problem for sigma {}, order {}, noise {}'.format(sigma, order, sigma_noise), flush=True)
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_long'.format(
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
         Nside, sigma_noise, order, sigma)
 
     data_path = 'data/same_psd/'
@@ -226,4 +226,4 @@ if __name__ == '__main__':
     for i, order in enumerate(orders):
         for j, sigma_noise in enumerate(sigma_noises):
             results[i, j] = single_experiment(order, sigma, sigma_noise, path)
-            np.savez(path + 'histogram_results_sigma{}_long2'.format(sigma), [results])
+            np.savez(path + 'histogram_results_sigma{}'.format(sigma), [results])

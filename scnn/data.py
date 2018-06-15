@@ -1,6 +1,12 @@
-import itertools
 import numpy as np
 import functools
+from itertools import cycle
+# To handle python 2
+try:
+    from itertools import zip_longest as zip_longest
+except:
+    from itertools import izip_longest as zip_longest
+
 
 class LabeledDataset(object):
 
@@ -49,9 +55,10 @@ class LabeledDataset(object):
             self._p = np.random.permutation(self._N)
         else:
             self._p = np.arange(self._N)        
-        data_iter = grouper(itertools.cycle(self._X[self._p]), batch_size)
-        label_iter = grouper(itertools.cycle(self._label[self._p]), batch_size)
-        for data, label in itertools.zip_longest(data_iter, label_iter):
+        data_iter = grouper(cycle(self._X[self._p]), batch_size)
+        label_iter = grouper(cycle(self._label[self._p]), batch_size)
+        for data, label in zip_longest(data_iter, label_iter):
+
             data, label = np.array(data), np.array(label)
             if self._transform:
                 yield self._transform(data), label
@@ -105,9 +112,9 @@ class LabeledDatasetWithNoise(LabeledDataset):
             self._p = np.random.permutation(self._N)
         else:
             self._p = np.arange(self._N)        
-        data_iter = grouper(itertools.cycle(self._X[self._p]), batch_size)
-        label_iter = grouper(itertools.cycle(self._label[self._p]), batch_size)
-        for data, label in itertools.zip_longest(data_iter, label_iter):
+        data_iter = grouper(cycle(self._X[self._p]), batch_size)
+        label_iter = grouper(cycle(self._label[self._p]), batch_size)
+        for data, label in zip_longest(data_iter, label_iter):
             if curr_it < self._nit:
                 level = self._sl + curr_it/self._nit * (self._el - self._sl)
             else:
@@ -123,4 +130,4 @@ def grouper(iterable, n, fillvalue=None):
     """
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
-    return itertools.zip_longest(fillvalue=fillvalue, *args)
+    return zip_longest(fillvalue=fillvalue, *args)

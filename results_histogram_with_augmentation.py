@@ -57,10 +57,11 @@ def err_svc_linear_single(C, x_train, label_train, x_test, label_test):
 
 
 def err_svc_linear(x_train, label_train, x_test, label_test):
-    Cs = np.logspace(-2,2,num=9)
+    ngrid=9
+    Cs = np.logspace(-2,2,num=ngrid)
     parallel = True
     if parallel:
-        num_workers = mp.cpu_count()//2 - 1
+        num_workers = min(ngrid, mp.cpu_count() - 1)
         with mp.Pool(processes=num_workers) as pool:
             func = functools.partial(
                 err_svc_linear_single, 
@@ -88,9 +89,11 @@ def err_svc_linear(x_train, label_train, x_test, label_test):
     error_train = errors_train[k]
     error_test = errors_test[k]
     print('Optimal C: {}'.format(Cs[k]), flush=True)
-    if (k==0 or k==8) and error_test>0:
+    if (k==0 or k==ngrid-1) and error_test>0:
         print('----------------\n WARNING -- k has a bad value! \n {}'.format(errors_test), flush=True)
     return error_train, error_test
+
+
 
 
 def single_experiment(order, sigma, sigma_noise, path):

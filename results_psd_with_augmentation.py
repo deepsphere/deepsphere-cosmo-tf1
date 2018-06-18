@@ -149,7 +149,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     labels_train = []
     print('Start autmenting the dataset', flush=True)
     for i in range(nloop * 2):
-        print('Compute PSD {}/{}'.format(i, nloop*4), flush=True)
+        print('Compute PSD {}/{}'.format(i, nloop*2), flush=True)
         x, l = next(it)
         x_trans_train.append(utils.psd_unseen(x, 1024, multiprocessing=True))
         labels_train.append(l)

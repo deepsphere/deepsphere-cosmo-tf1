@@ -188,8 +188,17 @@ def hp_split(img, order, nest=True):
     nsample = 12 * order**2
     return img.reshape([nsample, npix//nsample])
 
+def histogram(x, cmin, cmax, bins=100, multiprocessing=False):
+    if multiprocessing:
+        num_workers = mp.cpu_count()
+        with mp.Pool(processes=num_workers) as pool:
+            func = functools.partial(histogram_helper, cmin=cmin, cmax=cmax, bins=bins)
+            results = pool.map(func, x)
+        return np.stack(results)
+    else:
+        return histogram_helper(x, cmin, cmax, bins)
 
-def histogram(x, cmin, cmax, bins=100):
+def histogram_helper(x, cmin, cmax, bins=100):
     """
     Make histograms features vector from samples contained in a numpy array.
     """

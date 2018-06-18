@@ -159,7 +159,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     for i in range(nloop * 4):
         print( 'Iteration {} / {}'.format(i, nloop*4), flush=True)
         x, l = next(it)
-        x_trans_train.append(utils.histogram(x, cmin, cmax))
+        x_trans_train.append(utils.histogram(x, cmin, cmax, multiprocessing=True))
         labels_train.append(l)
     del it
     del training

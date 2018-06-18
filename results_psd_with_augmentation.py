@@ -142,13 +142,13 @@ def single_experiment(order, sigma, sigma_noise, path):
         nloop = 10
     ntrain = len(x_raw_train)
     N = ntrain * nloop
-    nbatch = ntrain // 4
+    nbatch = ntrain // 2
     it = training.iter(nbatch)
 
     x_trans_train = []
     labels_train = []
     print('Start autmenting the dataset', flush=True)
-    for i in range(nloop * 4):
+    for i in range(nloop * 2):
         print('Compute PSD {}/{}'.format(i, nloop*4), flush=True)
         x, l = next(it)
         x_trans_train.append(utils.psd_unseen(x, 1024, multiprocessing=True))

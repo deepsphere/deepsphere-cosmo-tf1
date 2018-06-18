@@ -53,7 +53,7 @@ def err_svc_linear(x_train, label_train, x_test, label_test):
     Cs = np.logspace(-2,2,num=ngrid)
     parallel = True
     if parallel:
-        num_workers = min(ngrid, mp.cpu_count() - 1)
+        num_workers = ngrid
         with mp.Pool(processes=num_workers) as pool:
             func = functools.partial(
                 err_svc_linear_single, 

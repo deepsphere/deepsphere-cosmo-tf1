@@ -61,7 +61,7 @@ def err_svc_linear(x_train, label_train, x_test, label_test):
     Cs = np.logspace(-2,2,num=ngrid)
     parallel = True
     if parallel:
-        num_workers = min(ngrid, mp.cpu_count() - 1)
+        num_workers = ngrid
         with mp.Pool(processes=num_workers) as pool:
             func = functools.partial(
                 err_svc_linear_single, 
@@ -159,7 +159,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     for i in range(nloop * 4):
         print( 'Iteration {} / {}'.format(i, nloop*4), flush=True)
         x, l = next(it)
-        x_trans_train.append(utils.histogram(x, cmin, cmax, multiprocessing=True))
+        x_trans_train.append(utils.histogram(x, cmin, cmax, multiprocessing=False))
         labels_train.append(l)
     del it
     del training

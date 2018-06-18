@@ -96,6 +96,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     data_path = 'data/same_psd/'
     ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
     ds2 = np.load(data_path + 'smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
+    print('Data loaded', flush=True)
 
     datasample = dict()
     datasample['class1'] = np.vstack(
@@ -104,6 +105,7 @@ def single_experiment(order, sigma, sigma_noise, path):
         [utils.hp_split(el, order=order) for el in ds2])
     del ds1
     del ds2
+    print('Class created', flush=True)
 
     # Normalize and transform the data, i.e. extract features.
     x_raw = np.vstack((datasample['class1'], datasample['class2']))
@@ -111,6 +113,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     x_raw = x_raw / x_raw_std  # Apply some normalization
     rs = np.random.RandomState(0)
     x_noise = x_raw + sigma_noise * rs.randn(*x_raw.shape)
+    print('Noise created', flush=True)
 
     # Create the label vector.
     labels = np.zeros([x_raw.shape[0]], dtype=int)
@@ -131,6 +134,8 @@ def single_experiment(order, sigma, sigma_noise, path):
         labels_train,
         start_level=sigma_noise,
         end_level=sigma_noise)
+    print('Initial training dataset created', flush=True)
+
     if order==4:
         nloop = 2
     else:
@@ -142,7 +147,9 @@ def single_experiment(order, sigma, sigma_noise, path):
 
     x_trans_train = []
     labels_train = []
+    print('Start autmenting the dataset', flush=True)
     for i in range(nloop * 4):
+        print('Compute PSD {}/{}'.format(i, nloop*4), flush=True)
         x, l = next(it)
         x_trans_train.append(utils.psd_unseen(x, 1024))
         labels_train.append(l)
@@ -169,7 +176,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     err_validation[:] = np.nan
 
     for i, n in enumerate(nsamples):
-        print('{} Solve it for {} samples'.format(i, n))
+        print('{} Solve it for {} samples'.format(i, n), flush=True)
         err_train[i], err_validation[i] = err_svc_linear(
             x_trans_train[:n], labels_train[:n], x_trans_validation,
             labels_validation)
@@ -182,11 +189,11 @@ def single_experiment(order, sigma, sigma_noise, path):
 
     e_train, e_validation = err_svc_linear(
         x_trans_train, labels_train, x_trans_validation, labels_validation)
-    print('The validation error is {}%'.format(e_validation * 100))
+    print('The validation error is {}%'.format(e_validation * 100), flush=True)
 
     e_train, e_test = err_svc_linear(x_trans_train, labels_train,
                                      x_trans_test, labels_test)
-    print('The test error is {}%'.format(e_test * 100))
+    print('The test error is {}%'.format(e_test * 100), flush=True)
 
     np.savez(path + EXP_NAME, [nsamples, err_train, err_validation, e_test])
 

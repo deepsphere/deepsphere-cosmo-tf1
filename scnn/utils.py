@@ -5,6 +5,8 @@ from scipy import sparse
 import matplotlib.pyplot as plt
 import healpy as hp
 from builtins import range
+import multiprocessing as mp
+import functools
 
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
@@ -340,7 +342,7 @@ def psd(x):
     return hp.alm2cl(hatx)
 
 
-def psd_unseen(x, Nside=1024):
+def psd_unseen_helper(x, Nside):
     '''Spherical Power Spectral Densities for incomplete spherical data'''
     if len(x.shape) == 2 and x.shape[1] > 1:
         return np.stack([psd_unseen(x[ind, ]) for ind in range(len(x))])
@@ -350,6 +352,16 @@ def psd_unseen(x, Nside=1024):
     hatx = hp.map2alm(hp.reorder(y, n2r=True))
     return hp.alm2cl(hatx)
 
+
+def psd_unseen(x, Nside=1024, multiprocessing=False):
+    if multiprocessing:
+        num_workers = mp.cpu_count()
+        with mp.Pool(processes=num_workers) as pool:
+            func = functools.partial(psd_unseen_helper, Nside=Nside)
+            results = pool.map(func, x)
+        return np.stack(results)
+    else:
+        return psd_unseen_helper(x, Nside=Nside)
 
 def show_all_variables():
     import tensorflow as tf

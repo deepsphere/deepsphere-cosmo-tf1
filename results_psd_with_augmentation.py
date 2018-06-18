@@ -151,7 +151,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     for i in range(nloop * 4):
         print('Compute PSD {}/{}'.format(i, nloop*4), flush=True)
         x, l = next(it)
-        x_trans_train.append(utils.psd_unseen(x, 1024))
+        x_trans_train.append(utils.psd_unseen(x, 1024, multiprocessing=True))
         labels_train.append(l)
     x_trans_train = np.concatenate(x_trans_train, axis=0)
     labels_train = np.concatenate(labels_train, axis=0)

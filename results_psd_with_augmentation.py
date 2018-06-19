@@ -163,7 +163,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     x_trans_train = x_trans_train / x_trans_train_std
 
     x_trans_validation = (
-        utils.psd_unseen(x_noise_validation, 1024) - x_trans_train_mean
+        utils.psd_unseen(x_noise_validation, 1024, multiprocessing=True) - x_trans_train_mean
     ) / x_trans_train_std
 
     if order==4:
@@ -185,7 +185,7 @@ def single_experiment(order, sigma, sigma_noise, path):
     x_noise_test, labels_test = get_testing_dataset(order, sigma, sigma_noise,
                                                     x_raw_std)
     x_trans_test = (
-        utils.psd_unseen(x_noise_test, 1024) - x_trans_train_mean
+        utils.psd_unseen(x_noise_test, 1024, multiprocessing=True) - x_trans_train_mean
     ) / x_trans_train_std
 
     e_train, e_validation = err_svc_linear(

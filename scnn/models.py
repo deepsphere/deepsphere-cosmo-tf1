@@ -294,6 +294,7 @@ class base_model(object):
         """Restore parameters if no session given."""
         if sess is None:
             sess = tf.Session(graph=self.graph)
+            print(self._get_path('checkpoints'))
             filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
             self.op_saver.restore(sess, filename)
         return sess
@@ -543,6 +544,30 @@ class cgcnn(base_model):
             x = self.fc(x, self.M[-1], relu=False)
         return x
 
+    def get_filter_coeffs(self, layer):
+        """Return the Chebyshev filter coefficients of a layer."""
+        K, Fout = self.K[layer-1], self.F[layer-1]
+        trained_weights = self.get_var('conv{}/weights'.format(layer))  # Fin*K x Fout
+        trained_weights = trained_weights.reshape((-1, K, Fout))
+        if layer >= 2:
+            Fin = self.F[layer-2]
+            assert trained_weights.shape == (Fin, K, Fout)
+
+        # Fin x K x Fout => K x Fout x Fin
+        trained_weights = trained_weights.transpose([1, 2, 0])
+        return trained_weights
+
+    def plot_chebyshev_coeffs(self, layer, ax=None, title='Chebyshev coefficients - layer {}'):
+        """Plot the Chebyshev coefficients of a layer."""
+        import matplotlib.pyplot as plt
+        if ax is None:
+            ax = plt.gca()
+        trained_weights = self.get_filter_coeffs(layer)
+        K, Fout, Fin = trained_weights.shape
+        ax.plot(trained_weights.reshape((K, Fin*Fout)), '.')
+        ax.set_title(title.format(layer))
+        return ax
+
 
 class scnn(cgcnn):
     """
@@ -585,6 +610,17 @@ class scnn(cgcnn):
     def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
 
         L, p = utils.build_laplacians(nsides, indexes=indexes)
+        self.nsides = nsides
         super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
 
+
+    def get_gsp_filters(self, layer, ax=None, array=False, **kwargs):
+        """Plot the filter of a special layer in the spectral domain."""
+        from pygsp import filters
+
+        trained_weights = self.get_filter_coeffs(layer)
+        nside = self.nsides[layer-1]
+        G = utils.healpix_graph(nside=nside)
+        G.estimate_lmax()
+        return filters.Chebyshev(G, trained_weights)
 

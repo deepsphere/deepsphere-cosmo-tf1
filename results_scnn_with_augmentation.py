@@ -5,34 +5,8 @@ import shutil
 import sys
 
 import numpy as np
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
-
-from scnn import models, utils
+from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
-
-
-def get_testing_dataset(order, sigma, sigma_noise, std_xraw):
-    ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
-    ds2 = np.load('data/same_psd_testing/smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
-
-    datasample = dict()
-    datasample['class1'] = np.vstack(
-        [utils.hp_split(el, order=order) for el in ds1])
-    datasample['class2'] = np.vstack(
-        [utils.hp_split(el, order=order) for el in ds2])
-
-    x_raw = np.vstack((datasample['class1'], datasample['class2']))
-    x_raw = x_raw / std_xraw  # Apply some normalization
-
-    rs = np.random.RandomState(1)
-    x_noise = x_raw + sigma_noise * rs.randn(*x_raw.shape)
-
-    # Create the label vector.
-    labels = np.zeros([x_raw.shape[0]], dtype=int)
-    labels[len(datasample['class1']):] = 1
-
-    return x_noise, labels
 
 
 def single_experiment(sigma, order, sigma_noise):
@@ -41,59 +15,15 @@ def single_experiment(sigma, order, sigma_noise):
 
     EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
         Nside, sigma_noise, order, sigma)
-    data_path = 'data/same_psd/'
 
-    ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
-    ds2 = np.load(data_path + 'smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
-    datasample = dict()
-    datasample['class1'] = np.vstack(
-        [utils.hp_split(el, order=order) for el in ds1])
-    datasample['class2'] = np.vstack(
-        [utils.hp_split(el, order=order) for el in ds2])
-    del ds1
-    del ds2
+    x_raw_train, labels_raw_train, x_raw_std = experiment_helper.get_training_data(sigma, order)
+    x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
 
-    print('The data is of shape {}'.format(datasample['class1'].shape))
+    ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
+    features_train, labels_train, features_validation, labels_validation, features_test = ret 
 
-    # Normalize and transform the data, i.e. extract features.
-    x_raw = np.vstack((datasample['class1'], datasample['class2']))
-    x_raw_std = np.std(x_raw)
-    x_raw = x_raw / x_raw_std
-    rs = np.random.RandomState(0)
-    x_noise = x_raw + sigma_noise*rs.normal(0, 1, size=x_raw.shape)
-    cmin = np.min(x_raw)
-    cmax = np.max(x_raw)
-    x_hist = utils.histogram(x_noise, cmin, cmax)
-    x_trans = preprocessing.scale(x_hist)
-
-    # Create the label vector.
-    labels = np.zeros([x_raw.shape[0]], dtype=int)
-    labels[len(datasample['class1']):] = 1
-
-    # Random train / test split.
-    ret = train_test_split(
-        x_raw,
-        x_trans,
-        x_noise,
-        labels,
-        train_size=0.8,
-        shuffle=True,
-        random_state=0)
-    x_raw_train, x_raw_validation, x_trans_train, x_trans_validation, x_noise_train, x_noise_validation, labels_train, labels_validation = ret
-
-    print('Class 1 VS class 2')
-    print('  Training set: {} / {}'.format(
-        np.sum(labels_train == 0), np.sum(labels_train == 1)))
-    print('  Validation set: {} / {}'.format(
-        np.sum(labels_validation == 0), np.sum(labels_validation == 1)))
-
-    training = LabeledDatasetWithNoise(
-        x_raw_train,
-        labels_train,
-        start_level=0,
-        end_level=sigma_noise,
-        nit=len(labels_train) // 10)
-    validation = LabeledDataset(x_noise_validation, labels_validation)
+    training = LabeledDatasetWithNoise(features_train, labels_train, start_level=0, end_level=sigma_noise, nit=len(labels_train) // 10 )
+    validation = LabeledDataset(features_validation, labels_validation)
 
     if order == 4:
         nsides = [Nside, Nside // 2, Nside // 4, min(Nside // 8, 128)]
@@ -174,16 +104,13 @@ def single_experiment(sigma, order, sigma_noise):
 
     accuracy, loss, t_step = model.fit(training, validation)
 
-    utils.print_error(model, x_noise_train, labels_train, 'Training')
-    utils.print_error(model, x_noise_validation, labels_validation,
-                      'Validation')
+    error_validation = experiment_helper.model_error(model, features_validation, labels_validation)
+    print('The validation error is {}%'.format(error_validation * 100), flush=True)
 
-    x_noise_test, labels_test = get_testing_dataset(order, sigma, sigma_noise,
-                                                    x_raw_std)
+    error_test = experiment_helper.model_error(model, features_test, labels_test)
+    print('The testing error is {}%'.format(error_test * 100), flush=True)
 
-    e_test = utils.print_error(model, x_noise_test, labels_test, 'Test')
-
-    return e_test
+    return error_test
 
 
 if __name__ == '__main__':

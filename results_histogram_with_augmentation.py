@@ -1,15 +1,15 @@
 # coding: utf-8
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
 import numpy as np
-
 from scnn import experiment_helper
 
 
 def single_experiment(order, sigma, sigma_noise, path):
+    """Run as experiment.
 
+    Check the notebook `part_sphere.ipynb` to get more insides about this code.
+    """
     Nside = 1024
     print('Solve the histogram problem for sigma {}, order {}, noise {}'.format(sigma, order, sigma_noise), flush=True)
     EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
@@ -27,12 +27,9 @@ def single_experiment(order, sigma, sigma_noise, path):
     features_train, labels_train, features_validation, labels_validation, features_test = ret 
     ntrain = len(features_train)//augmentation
 
-    if order==4:
-        nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))
-        nsamples += list(ntrain // 2 * np.linspace(1, augmentation*2, num=40).astype(np.int))
-    else:
-        nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))
-        nsamples += list(ntrain // 2 * np.linspace(1, augmentation*2, num=40).astype(np.int))
+
+    nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))
+    nsamples += list(ntrain // 2 * np.linspace(1, augmentation*2, num=40).astype(np.int))
 
     err_train = np.zeros(shape=[len(nsamples)])
     err_validation = np.zeros(shape=[len(nsamples)])

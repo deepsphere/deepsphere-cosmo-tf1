@@ -9,6 +9,13 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 [gcnn_paper]: https://arxiv.org/abs/1606.09375
 [gcnn_code]: https://github.com/mdeff/cnn_graph/
 
+## TODO
+Here is the todo list for the code.
+* Put the data on Zenodo.
+* Make the script `download.py`
+* Checks all the notebooks, README
+
+
 ## Installation
 
 1. Clone this repository.
@@ -52,12 +59,33 @@ setting.
 
 Below are some notebooks which contain various experiments:
 1. Classification of data on the whole sphere
-1. Classification of data from part of the sphere
+1. Classification of data from part of the sphere (with noise)
 1. Robustness to noise
 
 The results we reported in the paper are recorded here:
 1. TODO: link to notebook
 1. TODO: link to notebook
+
+## Reproducing the results of the paper
+The step to reproduce the paper results are simple, while they might take a while.
+1. Download the dataset
+```
+python download.py
+```
+2. Preprocess the dataset
+```
+python preprocess.py
+```
+3. Run the experiemnts
+```
+python results_scnn_with_augmentation.py
+python results_histogram_with_augmentation.py
+python results_psd_with_augmentation.py
+```
+The results will be save in the folder `results`. Please not that the result of the spherical CNN may varies from one run to the oter. So you may want to check the tensorboard summaries and verify that convergence is attained. For some experiments, the network needs a large amount of epoch to stabilize.
+
+The scripts `results_scnn_with_augmentation.py` and `python results_psd_with_augmentation.py` can be executed in parallel. Please contact the authors if you are stuck in trying to do so.
+
 
 ## License & co
 

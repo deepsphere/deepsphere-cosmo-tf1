@@ -7,6 +7,7 @@ import sys
 import numpy as np
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
+from pgrid import pgrid
 
 
 def single_experiment(sigma, order, sigma_noise):
@@ -75,7 +76,7 @@ def single_experiment(sigma, order, sigma_noise):
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
     elif order == 1:
-        params['num_epochs'] = 200
+        params['num_epochs'] = 300
         params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.
@@ -117,31 +118,23 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1:
         sigma = int(sys.argv[1])
-        orders = [int(sys.argv[2])]
-        sigma_noises = [float(sys.argv[3])]
+        order = int(sys.argv[2])
+        sigma_noise = float(sys.argv[3])
+        grid = [(sigma, order, sigma_noise)]
     else:
-        orders = [1, 2, 4]
-        #sigma = 3  # Amount of smoothing.
-        #sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
-        sigma = 2
-        sigma_noises = [1, 2, 3, 4, 5]
-        # sigma = 1
-        # sigma_noises = [1, 2, 3, 4, 5]
-    print('sigma: ', sigma)
-    print('sigma_noises: ',sigma_noises)
-    print('orders: ', orders)
+        grid = pgrid()
     path = 'results/scnn/'
 
     os.makedirs(path, exist_ok=True)
-    for i, order in enumerate(orders):
-        for j, sigma_noise in enumerate(sigma_noises):
-            print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
-            res = single_experiment(sigma, order, sigma_noise)
-            filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
-            new_data = [order, sigma_noise, res]
-            if os.path.isfile(filepath+'.npz'):
-                results = np.load(filepath+'.npz')['data'].tolist()
-            else:
-                results = []
-            results.append(new_data)
-            np.savez(filepath, data=results)
+    for p in grid:
+        sigma, order, sigma_noise = p
+        print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+        res = single_experiment(sigma, order, sigma_noise)
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
+        new_data = [order, sigma_noise, res]
+        if os.path.isfile(filepath+'.npz'):
+            results = np.load(filepath+'.npz')['data'].tolist()
+        else:
+            results = []
+        results.append(new_data)
+        np.savez(filepath, data=results)

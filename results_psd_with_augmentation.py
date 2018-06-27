@@ -4,6 +4,7 @@ import os
 import sys
 import numpy as np
 from scnn import experiment_helper
+from pgrid import pgrid
 
 
 
@@ -62,29 +63,23 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1:
         sigma = int(sys.argv[1])
-        orders = [int(sys.argv[2])]
-        sigma_noises = [float(sys.argv[3])]
+        order = int(sys.argv[2])
+        sigma_noise = float(sys.argv[3])
+        grid = [(sigma, order, sigma_noise)]
     else:
-        orders = [1, 2, 4]
-        sigma = 3  # Amount of smoothing.
-        sigma_noises = [0, 0.5, 1, 1.5, 2]  # Relative added noise.
-        # sigma = 1
-        # sigma_noises = [1, 2, 3, 4, 5]
-    print('sigma: ', sigma)
-    print('sigma_noises: ',sigma_noises)
-    print('orders: ', orders)
+        grid = pgrid()
     path = 'results/psd/'
 
     os.makedirs(path, exist_ok=True)
-    for i, order in enumerate(orders):
-        for j, sigma_noise in enumerate(sigma_noises):
-            print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
-            res = single_experiment(order, sigma, sigma_noise, path)
-            filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
-            new_data = [order, sigma_noise, res]
-            if os.path.isfile(filepath+'.npz'):
-                results = np.load(filepath+'.npz')['data'].tolist()
-            else:
-                results = []
-            results.append(new_data)
-            np.savez(filepath, data=results)
+    for p in grid:
+        sigma, order, sigma_noise = p
+        print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+        res = single_experiment(sigma, order, sigma_noise)
+        filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
+        new_data = [order, sigma_noise, res]
+        if os.path.isfile(filepath+'.npz'):
+            results = np.load(filepath+'.npz')['data'].tolist()
+        else:
+            results = []
+        results.append(new_data)
+        np.savez(filepath, data=results)

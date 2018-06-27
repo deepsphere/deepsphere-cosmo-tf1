@@ -29,11 +29,9 @@ def launch_simulation(sigma, order, sigma_noise):
 
 
 sigma = 3
-orders = [1, 2, 4]
-if sigma == 3:
-    sigma_noises = [0, 0.5, 1, 1.5, 2]
-else:
-    sigma_noises = [1, 2, 3, 4, 5]
+orders = [1]
+
+sigma_noises = [1, 2, 3, 4, 5]
 for order in orders:
     for sigma_noise in sigma_noises:
         launch_simulation(sigma, order, sigma_noise)

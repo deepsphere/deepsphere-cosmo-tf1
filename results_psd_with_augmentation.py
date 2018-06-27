@@ -4,7 +4,7 @@ import os
 import sys
 import numpy as np
 from scnn import experiment_helper
-from .pgrid import pgrid
+from pgrid import pgrid
 
 
 

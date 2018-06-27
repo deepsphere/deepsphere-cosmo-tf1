@@ -1,5 +1,5 @@
 import os
-from .pgrid import pgrid
+from pgrid import pgrid
 
 txtfile = '''#!/bin/bash -l
 #SBATCH --time=23:59:00

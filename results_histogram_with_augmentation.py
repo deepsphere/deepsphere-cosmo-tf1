@@ -3,7 +3,7 @@
 import os
 import numpy as np
 from scnn import experiment_helper
-from pgrid import pgrid
+from .pgrid import pgrid
 
 
 def single_experiment(order, sigma, sigma_noise, path):

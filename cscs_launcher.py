@@ -1,4 +1,5 @@
 import os
+from .pgrid import pgrid
 
 txtfile = '''#!/bin/bash -l
 #SBATCH --time=23:59:00
@@ -30,8 +31,10 @@ def launch_simulation(sigma, order, sigma_noise):
 
 sigma = 3
 orders = [1]
-
 sigma_noises = [1, 2, 3, 4, 5]
 for order in orders:
     for sigma_noise in sigma_noises:
         launch_simulation(sigma, order, sigma_noise)
+# grid = pgrid()
+# for p in grid:
+# 	launch_simulation(*p)

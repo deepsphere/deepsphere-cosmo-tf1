@@ -7,7 +7,7 @@ import sys
 import numpy as np
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
-from pgrid import pgrid
+from .pgrid import pgrid
 
 
 def single_experiment(sigma, order, sigma_noise):

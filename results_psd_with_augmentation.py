@@ -8,7 +8,7 @@ from pgrid import pgrid
 
 
 
-def single_experiment(order, sigma, sigma_noise, path):
+def single_experiment(sigma, order, sigma_noise, path):
     """Run as experiment.
 
     Check the notebook `part_sphere.ipynb` to get more insides about this code.
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     for p in grid:
         sigma, order, sigma_noise = p
         print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
-        res = single_experiment(sigma, order, sigma_noise)
+        res = single_experiment(sigma, order, sigma_noise, path)
         filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):

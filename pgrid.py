@@ -1,6 +1,6 @@
 
 
-def parameters_grid():
+def pgrid():
     """Return the grid of parameter for the simulations."""
     sigma = 3
     orders = [1, 2, 4]

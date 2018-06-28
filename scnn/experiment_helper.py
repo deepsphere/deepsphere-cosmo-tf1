@@ -182,7 +182,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         ntrain = len(x_raw_train)
         N = ntrain * nloop
         nbatch = ntrain // 2
-
+        nbatch = 6
         it = training.iter(nbatch)
 
         features_train = []
@@ -195,21 +195,26 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
             labels_train.append(l)
         del it
         del training
+
         features_train = np.concatenate(features_train, axis=0)
         labels_train = np.concatenate(labels_train, axis=0)
 
+        if feature_type=='psd':
+            ell = np.arange(features_train.shape[1])
+            features_train = features_train*ell*(ell+1)
+
         # Scale the data
-        feature_train_mean = np.mean(features_train, axis=0)
-        features_train = features_train - feature_train_mean
+        features_train_mean = np.mean(features_train, axis=0)
+        features_train = features_train - features_train_mean
 
         features_train_std = np.std(features_train, axis=0)+0.001
         features_train = features_train / features_train_std
 
         print('Computing the features for the validation set', flush=True)
-        features_validation = (func(x_noise_validation) - feature_train_mean) / features_train_std
+        features_validation = (func(x_noise_validation) - features_train_mean) / features_train_std
 
         print('Computing the features for the testing set', flush=True)
-        features_test = (func(x_raw_test) - feature_train_mean) / features_train_std
+        features_test = (func(x_raw_test) - features_train_mean) / features_train_std
     else:
         if not(augmentation==1):
             raise ValueError('The raw data should be augmented using the LabeledDatasetWithNoise object.')

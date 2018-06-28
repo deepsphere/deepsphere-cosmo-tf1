@@ -237,7 +237,7 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers)
+                regularization *= tf.add_n(self.regularizers)/len(self.regularizers)
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
@@ -544,8 +544,15 @@ class cgcnn(base_model):
             x = self.fc(x, self.M[-1], relu=False)
         return x
 
-    def get_filter_coeffs(self, layer):
-        """Return the Chebyshev filter coefficients of a layer."""
+    def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
+        """Return the Chebyshev filter coefficients of a layer.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
         K, Fout = self.K[layer-1], self.F[layer-1]
         trained_weights = self.get_var('conv{}/weights'.format(layer))  # Fin*K x Fout
         trained_weights = trained_weights.reshape((-1, K, Fout))
@@ -555,14 +562,27 @@ class cgcnn(base_model):
 
         # Fin x K x Fout => K x Fout x Fin
         trained_weights = trained_weights.transpose([1, 2, 0])
+        if ind_in:
+            trained_weights = trained_weights[:, :, ind_in]
+        if ind_out:
+            trained_weights = trained_weights[:, ind_out, :]
         return trained_weights
 
-    def plot_chebyshev_coeffs(self, layer, ax=None, title='Chebyshev coefficients - layer {}'):
-        """Plot the Chebyshev coefficients of a layer."""
+    def plot_chebyshev_coeffs(self, layer, ind_in=None, ind_out=None,  ax=None, title='Chebyshev coefficients - layer {}'):
+        """Plot the Chebyshev coefficients of a layer.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        title : figure title
+        """
         import matplotlib.pyplot as plt
         if ax is None:
             ax = plt.gca()
-        trained_weights = self.get_filter_coeffs(layer)
+        trained_weights = self.get_filter_coeffs(layer, ind_in, ind_out)
         K, Fout, Fin = trained_weights.shape
         ax.plot(trained_weights.reshape((K, Fin*Fout)), '.')
         ax.set_title(title.format(layer))
@@ -611,16 +631,76 @@ class scnn(cgcnn):
 
         L, p = utils.build_laplacians(nsides, indexes=indexes)
         self.nsides = nsides
+        self.pygsp_graphs = [None]*len(nsides)
         super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
 
 
-    def get_gsp_filters(self, layer, ax=None, array=False, **kwargs):
-        """Plot the filter of a special layer in the spectral domain."""
+    def get_gsp_filters(self, layer,  ind_in=None, ind_out=None):
+        """Get the filter as a pygsp format
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
         from pygsp import filters
 
-        trained_weights = self.get_filter_coeffs(layer)
+        trained_weights = self.get_filter_coeffs(layer, ind_in, ind_out)
         nside = self.nsides[layer-1]
-        G = utils.healpix_graph(nside=nside)
-        G.estimate_lmax()
-        return filters.Chebyshev(G, trained_weights)
+        if self.pygsp_graphs[layer-1] is None:
+            self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
+            self.pygsp_graphs[layer-1].estimate_lmax()
+        return filters.Chebyshev(self.pygsp_graphs[layer-1], trained_weights)
 
+
+    def plot_filters_spectral(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
+        """Plot the filter of a special layer in the spectral domain.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        """
+        import matplotlib.pyplot as plt
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+
+        if ax is None:
+            ax = plt.gca()
+        filters.plot(sum=False, ax=ax, **kwargs)
+
+        return ax
+
+    def plot_filters_section(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
+        """Plot the filter section on the sphere
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        """
+        from . import plot
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+        fig = plot.plot_filters_section(filters, order=self.K[layer-1], **kwargs)
+
+    def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
+        """Plot the filter section on the sphere
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
+        from . import plot
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+        fig = plot.plot_filters_gnomonic(filters, order=self.K[layer-1], **kwargs)
+
+        return fig

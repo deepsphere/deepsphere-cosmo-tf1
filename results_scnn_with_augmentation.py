@@ -69,14 +69,14 @@ def single_experiment(sigma, order, sigma_noise):
         params['batch_norm'] = [True, True, True, True]  # Batch norm
 
     elif order == 2:
-        params['num_epochs'] = 100
+        params['num_epochs'] = 150
         params['batch_size'] = 15
         params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
     elif order == 1:
-        params['num_epochs'] = 300
+        params['num_epochs'] = 400
         params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.
@@ -90,8 +90,8 @@ def single_experiment(sigma, order, sigma_noise):
 
     # Optimization.
     params['decay_rate'] = 0.98
-    params['regularization'] = 1e-4
-    params['dropout'] = 0.5
+    params['regularization'] = 1e-3
+    params['dropout'] = 0.2
     params['learning_rate'] = 1e-4
     params['momentum'] = 0.9
     params['adam'] = True

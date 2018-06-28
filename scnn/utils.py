@@ -41,9 +41,26 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     x, y, z = hp.pix2vec(nside, indexes, nest=nest)
     coords = np.vstack([x, y, z]).transpose()
     coords = np.asarray(coords, dtype=dtype)
-
-    # Get the 8 neighbors.
+    # Get the 7-8 neighbors.
     neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
+    # if use_4:
+    #     print('Use 4')
+    #     col_index = []
+    #     row_index = []
+    #     for el,neighbor in zip(indexes,neighbors.T):
+    #         x, y, z = hp.pix2vec(nside, [el], nest=nest)
+    #         coords_1 = np.vstack([x, y, z]).transpose()
+    #         coords_1 = np.array(coords_1)
+
+    #         x, y, z = hp.pix2vec(nside, neighbor, nest=nest)
+    #         coords_2 = np.vstack([x, y, z]).transpose()
+    #         coords_2 = np.asarray(coords_2)
+    #         ind = np.argsort(np.sum((coords_2-coords_1)**2,axis=1),)[:4]
+    #         col_index = col_index + neighbor[ind].tolist()
+    #         row_index = row_index +[el]*4
+    #     col_index = np.array(col_index)
+    #     row_index = np.array(row_index)
+    # else:
     # Indices of non-zero values in the adjacency matrix.
     col_index = neighbors.T.reshape((npix * 8))
     row_index = np.repeat(indexes, 8)
@@ -75,6 +92,10 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     # Build the sparse matrix.
     W = sparse.csr_matrix(
         (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+
+    # if use_4:
+    #     W = (W+W.T)/2
+
     return W
 
 

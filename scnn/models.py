@@ -18,6 +18,11 @@ from builtins import range
 
 from . import utils
 
+def show_all_variables():
+    import tensorflow as tf
+    import tensorflow.contrib.slim as slim
+    model_vars = tf.trainable_variables()
+    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 # Python 2 compatibility.
 if hasattr(time, 'process_time'):
@@ -86,7 +91,6 @@ class base_model(object):
         """
         t_process, t_wall = process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
-        #print(predictions)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
@@ -233,7 +237,7 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers)
+                regularization *= tf.add_n(self.regularizers)/len(self.regularizers)
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
@@ -250,7 +254,7 @@ class base_model(object):
                     loss_average = tf.identity(averages.average(loss), name='control')
             return loss, loss_average
 
-    def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False):
+    def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False, beta2=0.999):
         """Adds to the loss model the Ops required to generate and apply gradients."""
         with tf.name_scope('training'):
             # Learning rate.
@@ -258,10 +262,10 @@ class base_model(object):
             if decay_rate != 1:
                 learning_rate = tf.train.exponential_decay(
                         learning_rate, global_step, decay_steps, decay_rate, staircase=True)
-            tf.summary.scalar('learning_rate', learning_rate)
+                tf.summary.scalar('learning_rate', learning_rate)
             # Optimizer.
             if adam:
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum)
+                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum, beta2=beta2)
             else:
                 if momentum == 0:
                     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
@@ -290,6 +294,7 @@ class base_model(object):
         """Restore parameters if no session given."""
         if sess is None:
             sess = tf.Session(graph=self.graph)
+            print(self._get_path('checkpoints'))
             filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
             self.op_saver.restore(sess, filename)
         return sess
@@ -410,6 +415,7 @@ class cgcnn(base_model):
         # Build the computational graph.
         self.build_graph(M_0)
 
+        show_all_variables()
 
     def chebyshev5(self, x, L, Fout, K):
         N, M, Fin = x.get_shape()
@@ -538,6 +544,50 @@ class cgcnn(base_model):
             x = self.fc(x, self.M[-1], relu=False)
         return x
 
+    def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
+        """Return the Chebyshev filter coefficients of a layer.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
+        K, Fout = self.K[layer-1], self.F[layer-1]
+        trained_weights = self.get_var('conv{}/weights'.format(layer))  # Fin*K x Fout
+        trained_weights = trained_weights.reshape((-1, K, Fout))
+        if layer >= 2:
+            Fin = self.F[layer-2]
+            assert trained_weights.shape == (Fin, K, Fout)
+
+        # Fin x K x Fout => K x Fout x Fin
+        trained_weights = trained_weights.transpose([1, 2, 0])
+        if ind_in:
+            trained_weights = trained_weights[:, :, ind_in]
+        if ind_out:
+            trained_weights = trained_weights[:, ind_out, :]
+        return trained_weights
+
+    def plot_chebyshev_coeffs(self, layer, ind_in=None, ind_out=None,  ax=None, title='Chebyshev coefficients - layer {}'):
+        """Plot the Chebyshev coefficients of a layer.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        title : figure title
+        """
+        import matplotlib.pyplot as plt
+        if ax is None:
+            ax = plt.gca()
+        trained_weights = self.get_filter_coeffs(layer, ind_in, ind_out)
+        K, Fout, Fin = trained_weights.shape
+        ax.plot(trained_weights.reshape((K, Fin*Fout)), '.')
+        ax.set_title(title.format(layer))
+        return ax
+
 
 class scnn(cgcnn):
     """
@@ -580,6 +630,77 @@ class scnn(cgcnn):
     def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
 
         L, p = utils.build_laplacians(nsides, indexes=indexes)
+        self.nsides = nsides
+        self.pygsp_graphs = [None]*len(nsides)
         super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
 
 
+    def get_gsp_filters(self, layer,  ind_in=None, ind_out=None):
+        """Get the filter as a pygsp format
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
+        from pygsp import filters
+
+        trained_weights = self.get_filter_coeffs(layer, ind_in, ind_out)
+        nside = self.nsides[layer-1]
+        if self.pygsp_graphs[layer-1] is None:
+            self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
+            self.pygsp_graphs[layer-1].estimate_lmax()
+        return filters.Chebyshev(self.pygsp_graphs[layer-1], trained_weights)
+
+
+    def plot_filters_spectral(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
+        """Plot the filter of a special layer in the spectral domain.
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        """
+        import matplotlib.pyplot as plt
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+
+        if ax is None:
+            ax = plt.gca()
+        filters.plot(sum=False, ax=ax, **kwargs)
+
+        return ax
+
+    def plot_filters_section(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
+        """Plot the filter section on the sphere
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        ax : axes (optional)
+        """
+        from . import plot
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+        fig = plot.plot_filters_section(filters, order=self.K[layer-1], **kwargs)
+
+    def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
+        """Plot the filter section on the sphere
+
+        Arguments
+        ---------
+        layer : index of the layer (starts with 1).
+        ind_in : index(es) of the input filter(s) (default None, all the filters)
+        ind_out : index(es) of the output filter(s) (default None, all the filters)
+        """
+        from . import plot
+
+        filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
+        fig = plot.plot_filters_gnomonic(filters, order=self.K[layer-1], **kwargs)
+
+        return fig

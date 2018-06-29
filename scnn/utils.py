@@ -145,10 +145,14 @@ def healpix_laplacian(nside=16,
                       nest=True,
                       lap_type='normalized',
                       indexes=None,
-                      dtype=np.float32):
+                      dtype=np.float32,
+                      use_4=False):
     """Build a Healpix Laplacian."""
-    W = healpix_weightmatrix(
-        nside=nside, nest=nest, indexes=indexes, dtype=dtype)
+    if use_4:
+        W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
+    else:
+        W = healpix_weightmatrix(
+            nside=nside, nest=nest, indexes=indexes, dtype=dtype)
     L = build_laplacian(W, lap_type=lap_type)
     return L
 
@@ -162,7 +166,7 @@ def rescale_L(L, lmax=2):
     return L
 
 
-def build_laplacians(nsides, indexes=None):
+def build_laplacians(nsides, indexes=None, use_4=False):
     """Build a list of Laplacian form nsides."""
     L = []
     p = []
@@ -175,7 +179,7 @@ def build_laplacians(nsides, indexes=None):
             p.append(pval)
         nside_old = nside
         first = False
-        Lt = healpix_laplacian(nside=nside, indexes=ind)
+        Lt = healpix_laplacian(nside=nside, indexes=ind, use_4=use_4)
         L.append(Lt)
     if len(L):
         p.append(1)
@@ -204,3 +208,112 @@ def show_all_variables():
     import tensorflow.contrib.slim as slim
     model_vars = tf.trainable_variables()
     slim.model_analyzer.analyze_vars(model_vars, print_info=True)
+
+
+def build_matrix_4_neighboors(nside, indexes, nest=True, dtype=np.float32):
+    assert(nest)
+
+    order = nside//hp.npix2nside(12*(max(indexes)+1))
+
+    npix = hp.nside2npix(nside) // hp.nside2npix(order)
+    new_indexes = list(range(npix))
+    assert(set(indexes)==set(new_indexes))
+
+    x, y, z = hp.pix2vec(nside, indexes, nest=True)
+    coords = np.vstack([x, y, z]).transpose()
+    coords = np.array(coords)
+
+    def all_or(d3, v):
+        v = np.array(v)
+        for d in d3:
+            if not (v == d).any():
+                return False
+        return True
+
+    row_index = []
+    col_index = []
+    for index in indexes:
+        # A) Start with the initial square
+        d = index % 4
+        base = index - d
+        # 1) Add the next pixel
+        row_index.append(index)
+        if d == 0:
+            col_index.append(base + 1)
+        elif d == 1:
+            col_index.append(base + 3)
+        elif d == 2:
+            col_index.append(base)
+        elif d == 3:
+            col_index.append(base + 2)
+        else:
+            raise ValueError('Error in the code')
+        # 2) Add the previous pixel
+        row_index.append(index)
+        if d == 0:
+            col_index.append(base + 2)
+        elif d == 1:
+            col_index.append(base)
+        elif d == 2:
+            col_index.append(base + 3)
+        elif d == 3:
+            col_index.append(base + 1)
+        else:
+            raise ValueError('Error in the code')
+
+        # B) Connect the squares together...
+        for it in range(int(np.log2(nside) - np.log2(order) - 1)):
+
+            d2 = (index // (4**(it + 1))) % 4
+            d3 = [d]
+            for it2 in range(it):
+                d3.append((index // (4**(it2 + 1)) % 4))
+            d3 = np.array(d3)
+            shift_o = []
+            for it2 in range(it + 1):
+                shift_o.append(4**it2)
+            shift = 4**(it + 1) - sum(shift_o)
+            if d2 == 0:
+                if all_or(d3, [1, 3]):
+                    row_index.append(index)
+                    col_index.append(index + shift)
+                if all_or(d3, [2, 3]):
+                    row_index.append(index)
+                    col_index.append(index + 2 * shift)
+            elif d2 == 1:
+                if all_or(d3, [0, 2]):
+                    row_index.append(index)
+                    col_index.append(index - shift)
+                if all_or(d3, [2, 3]):
+                    row_index.append(index)
+                    col_index.append(index + 2 * shift)
+            elif d2 == 2:
+                if all_or(d3, [0, 1]):
+                    row_index.append(index)
+                    col_index.append(index - 2 * shift)
+                if all_or(d3, [1, 3]):
+                    row_index.append(index)
+                    col_index.append(index + shift)
+            elif d2 == 3:
+                if all_or(d3, [0, 1]):
+                    row_index.append(index)
+                    col_index.append(index - 2 * shift)
+                if all_or(d3, [0, 2]):
+                    row_index.append(index)
+                    col_index.append(index - shift)
+            else:
+                raise ValueError('Error in the code')
+
+    # Compute Euclidean distances between neighbors.
+    distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
+    # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
+
+    # Compute similarities / edge weights.
+    kernel_width = np.mean(distances)
+    weights = np.exp(-distances / (3 * kernel_width))
+
+    # Build the sparse matrix.
+    W = sparse.csr_matrix(
+        (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+
+    return W

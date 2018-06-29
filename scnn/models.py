@@ -627,9 +627,9 @@ class scnn(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
+    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, use_4=False, **kwargs):
 
-        L, p = utils.build_laplacians(nsides, indexes=indexes)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4)
         self.nsides = nsides
         self.pygsp_graphs = [None]*len(nsides)
         super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)

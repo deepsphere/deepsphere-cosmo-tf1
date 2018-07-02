@@ -28,13 +28,6 @@ def launch_simulation(sigma, order, sigma_noise):
     os.system("sbatch launch.sh")
     os.remove('launch.sh')
 
-
-sigma = 3
-orders = [1]
-sigma_noises = [1, 2, 3, 4, 5]
-for order in orders:
-    for sigma_noise in sigma_noises:
-        launch_simulation(sigma, order, sigma_noise)
-# grid = pgrid()
-# for p in grid:
-# 	launch_simulation(*p)
+grid = pgrid()
+for p in grid:
+    launch_simulation(*p)

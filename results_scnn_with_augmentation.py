@@ -46,7 +46,7 @@ def single_experiment(sigma, order, sigma_noise):
     indexes = utils.nside2indexes(nsides, order)
 
     C = 2  # number of class
-    ntrain = len(x_noise_train)
+    ntrain = len(features_train)
 
     params = dict()
     params['dir_name'] = EXP_NAME

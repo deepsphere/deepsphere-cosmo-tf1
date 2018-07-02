@@ -23,7 +23,7 @@ def single_experiment(sigma, order, sigma_noise, path):
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
 
     if order==4:
-        augmentation = 2
+        augmentation = 4
     else:
         augmentation = 10
 

@@ -182,7 +182,6 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         ntrain = len(x_raw_train)
         N = ntrain * nloop
         nbatch = ntrain // 2
-        nbatch = 6
         it = training.iter(nbatch)
 
         features_train = []
@@ -213,11 +212,9 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
 
         # Scale the data
         features_train_mean = np.mean(features_train, axis=0)
-        features_train = features_train - features_train_mean
+        features_train_std = np.std(features_train, axis=0)+1e-6
 
-        features_train_std = np.std(features_train, axis=0)+1e6
-        features_train = features_train / features_train_std
-
+        features_train = (features_train - features_train_mean) / features_train_std
         features_test = (features_test - features_train_mean) / features_train_std      
         features_validation = (features_validation - features_train_mean) / features_train_std
     else:

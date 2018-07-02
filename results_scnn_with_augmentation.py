@@ -96,6 +96,7 @@ def single_experiment(sigma, order, sigma_noise):
     params['momentum'] = 0.9
     params['adam'] = True
     params['decay_steps'] = 153.6
+    params['use_4'] = False
 
     model = models.scnn(**params)
 

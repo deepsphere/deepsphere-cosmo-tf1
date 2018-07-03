@@ -273,5 +273,5 @@ def err_svc_linear(x_train, labels_train, x_validation, labels_validation, nv=9)
     if t1 and t2 and t3:
         wm = '----------------\n WARNING -- k has a bad value! \n {}'
         print(wm.format(errors_validation), flush=True)
-    return error_train, error_validation
+    return error_train, error_validation, Cs[k]
 

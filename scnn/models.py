@@ -688,6 +688,7 @@ class scnn(cgcnn):
 
         filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
         fig = plot.plot_filters_section(filters, order=self.K[layer-1], **kwargs)
+        return fig
 
     def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
         """Plot the filter section on the sphere

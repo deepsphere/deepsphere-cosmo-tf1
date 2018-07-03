@@ -5,7 +5,12 @@ import numpy as np
 from scipy import sparse
 import healpy as hp
 from builtins import range
-
+import os
+import sys
+if sys.version_info[0] > 2:
+    from urllib.request import urlretrieve
+else:
+    from urllib import urlretrieve
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     """Return an unnormalized weight matrix for a graph using the HEALPIX sampling.
@@ -117,6 +122,7 @@ def healpix_graph(nside=16,
                   nest=True,
                   lap_type='normalized',
                   indexes=None,
+                  use_4=False,
                   dtype=np.float32):
     """Build a healpix graph using the pygsp from NSIDE."""
     from pygsp import graphs
@@ -130,8 +136,12 @@ def healpix_graph(nside=16,
     x, y, z = hp.pix2vec(nside, pix, nest=nest)
     coords = np.vstack([x, y, z]).transpose()[indexes]
     # 2) computing the weight matrix
-    W = healpix_weightmatrix(
-        nside=nside, nest=nest, indexes=indexes, dtype=dtype)
+    if use_4:
+        raise NotImplementedError()
+        W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
+    else:
+        W = healpix_weightmatrix(
+            nside=nside, nest=nest, indexes=indexes, dtype=dtype)
     # 3) building the graph
     G = graphs.Graph(
         W,
@@ -317,3 +327,31 @@ def build_matrix_4_neighboors(nside, indexes, nest=True, dtype=np.float32):
         (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
 
     return W
+
+
+def require_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return None
+
+
+def download(url, target_dir, filename=None):
+    require_dir(target_dir)
+    if filename is None:
+        filename = url_filename(url)
+    filepath = os.path.join(target_dir, filename)
+    urlretrieve(url, filepath)
+    return filepath
+
+
+def url_filename(url):
+    return url.split('/')[-1].split('#')[0].split('?')[0]
+
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = None
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout = self._original_stdout

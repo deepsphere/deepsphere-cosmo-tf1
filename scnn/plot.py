@@ -5,12 +5,13 @@ import numpy as np
 import healpy as hp
 from builtins import range
 import matplotlib.pyplot as plt
+from . import utils
 
 
 def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}', graticule=False):
     """Plot all filters in a filterbank in Gnomonic projection."""
     nside = hp.npix2nside(filters.G.N)
-    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
+    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 100
     rot = hp.pix2ang(nside=nside, ipix=ind, nest=True, lonlat=True)
 
     maps = filters.localize(ind, order=order)
@@ -39,7 +40,7 @@ def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}', grati
             map = maps[row, col, :]
             hp.gnomview(map.flatten(), nest=True, rot=rot, reso=reso, sub=(nrows, ncols, col+row*ncols+1),
                     title=title.format(row, col), notext=True,  min=ymin, max=ymax, cbar=False, cmap=cm,
-                    margins=[0.003,0.003,0.003,0.003])
+                    margins=[0.003,0.003,0.003,0.003],)
             # if row == nrows - 1:
             #     #axes[row, col].xaxis.set_ticks_position('top')
             #     #axes[row, col].invert_yaxis()
@@ -49,7 +50,8 @@ def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}', grati
     # fig.suptitle('Gnomoinc view of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
     # return fig
     if graticule:
-        hp.graticule()
+        with utils.HiddenPrints():
+            hp.graticule()
 
 
 

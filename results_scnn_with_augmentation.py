@@ -67,7 +67,7 @@ def single_experiment(sigma, order, sigma_noise):
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
-        params['regularization'] = 1e-4
+        params['regularization'] = 2e-4
 
     elif order == 2:
         params['num_epochs'] = 150
@@ -76,17 +76,17 @@ def single_experiment(sigma, order, sigma_noise):
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
-        params['regularization'] = 2e-4
+        params['regularization'] = 4e-4
 
     elif order == 1:
-        params['num_epochs'] = 400
+        params['num_epochs'] = 290
         params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True,
                                 True]  # Batch norm
-        params['regularization'] = 2e-4
+        params['regularization'] = 4e-4
 
     else:
         raise ValueError('No parameter for this value of order.')
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         sigma, order, sigma_noise = p
         print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}_ok'.format(sigma))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

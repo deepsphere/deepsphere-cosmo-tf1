@@ -627,9 +627,9 @@ class scnn(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, **kwargs):
+    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, use_4=False, **kwargs):
 
-        L, p = utils.build_laplacians(nsides, indexes=indexes)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4)
         self.nsides = nsides
         self.pygsp_graphs = [None]*len(nsides)
         super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
@@ -688,6 +688,7 @@ class scnn(cgcnn):
 
         filters = self.get_gsp_filters(layer,  ind_in=ind_in, ind_out=ind_out)
         fig = plot.plot_filters_section(filters, order=self.K[layer-1], **kwargs)
+        return fig
 
     def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
         """Plot the filter section on the sphere

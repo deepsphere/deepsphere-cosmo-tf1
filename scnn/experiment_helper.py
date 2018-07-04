@@ -182,7 +182,6 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         ntrain = len(x_raw_train)
         N = ntrain * nloop
         nbatch = ntrain // 2
-        nbatch = 6
         it = training.iter(nbatch)
 
         features_train = []
@@ -199,22 +198,25 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         features_train = np.concatenate(features_train, axis=0)
         labels_train = np.concatenate(labels_train, axis=0)
 
+        print('Computing the features for the validation set', flush=True)
+        features_validation = func(x_noise_validation)
+        
+        print('Computing the features for the testing set', flush=True)
+        features_test = func(x_raw_test)
+
         if feature_type=='psd':
             ell = np.arange(features_train.shape[1])
             features_train = features_train*ell*(ell+1)
+            features_test = features_test*ell*(ell+1)
+            features_validation = features_validation*ell*(ell+1)
 
         # Scale the data
         features_train_mean = np.mean(features_train, axis=0)
-        features_train = features_train - features_train_mean
+        features_train_std = np.std(features_train, axis=0)+1e-6
 
-        features_train_std = np.std(features_train, axis=0)+0.001
-        features_train = features_train / features_train_std
-
-        print('Computing the features for the validation set', flush=True)
-        features_validation = (func(x_noise_validation) - features_train_mean) / features_train_std
-
-        print('Computing the features for the testing set', flush=True)
-        features_test = (func(x_raw_test) - features_train_mean) / features_train_std
+        features_train = (features_train - features_train_mean) / features_train_std
+        features_test = (features_test - features_train_mean) / features_train_std      
+        features_validation = (features_validation - features_train_mean) / features_train_std
     else:
         if not(augmentation==1):
             raise ValueError('The raw data should be augmented using the LabeledDatasetWithNoise object.')
@@ -271,5 +273,5 @@ def err_svc_linear(x_train, labels_train, x_validation, labels_validation, nv=9)
     if t1 and t2 and t3:
         wm = '----------------\n WARNING -- k has a bad value! \n {}'
         print(wm.format(errors_validation), flush=True)
-    return error_train, error_validation
+    return error_train, error_validation, Cs[k]
 

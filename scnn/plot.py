@@ -5,12 +5,13 @@ import numpy as np
 import healpy as hp
 from builtins import range
 import matplotlib.pyplot as plt
+from . import utils
 
 
-def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}'):
+def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}', graticule=False):
     """Plot all filters in a filterbank in Gnomonic projection."""
     nside = hp.npix2nside(filters.G.N)
-    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 70
+    reso = hp.pixelfunc.nside2resol(nside=nside, arcmin=True) * order / 100
     rot = hp.pix2ang(nside=nside, ipix=ind, nest=True, lonlat=True)
 
     maps = filters.localize(ind, order=order)
@@ -31,13 +32,15 @@ def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}'):
     # fig, axes = plt.subplots(nrows, ncols, figsize=(17, 17/ncols*nrows),
     #                          squeeze=False, sharex='col', sharey='row')
     cm = plt.cm.seismic
+    cm.set_under('w')
     a = max(abs(maps.min()), maps.max())
     ymin, ymax = -a,a
     for row in range(nrows):
         for col in range(ncols):
             map = maps[row, col, :]
             hp.gnomview(map.flatten(), nest=True, rot=rot, reso=reso, sub=(nrows, ncols, col+row*ncols+1),
-                    title=title.format(row, col), notext=True,  min=ymin, max=ymax, cbar=False, cmap=cm)
+                    title=title.format(row, col), notext=True,  min=ymin, max=ymax, cbar=False, cmap=cm,
+                    margins=[0.003,0.003,0.003,0.003],)
             # if row == nrows - 1:
             #     #axes[row, col].xaxis.set_ticks_position('top')
             #     #axes[row, col].invert_yaxis()
@@ -46,6 +49,10 @@ def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}'):
             #     axes[row, col].set_ylabel('in map {}'.format(row))
     # fig.suptitle('Gnomoinc view of the {} filters in the filterbank'.format(filters.n_filters))#, y=0.90)
     # return fig
+    if graticule:
+        with utils.HiddenPrints():
+            hp.graticule()
+
 
 
 def plot_filters_section(filters,
@@ -83,7 +90,7 @@ def plot_filters_section(filters,
     angle = angle / (2 * np.pi) * 360
 
     # Plot everything.
-    fig, axes = plt.subplots(nrows, ncols, figsize=(17, 12/ncols*nrows),
+    fig, axes = plt.subplots(nrows, ncols, figsize=(12, 12/ncols*nrows),
                              squeeze=False, sharex='col', sharey='row')
 
     ymin, ymax = 1.05*maps.min(), 1.05*maps.max()

@@ -23,14 +23,13 @@ def single_experiment(sigma, order, sigma_noise, path):
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
 
     if order==4:
-        augmentation = 2
+        augmentation = 4
     else:
         augmentation = 10
 
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type='psd', augmentation=augmentation)
     features_train, labels_train, features_validation, labels_validation, features_test = ret 
     ntrain = len(features_train)//augmentation
-
 
     nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))
     nsamples += list(ntrain // 2 * np.linspace(1, augmentation*2, num=40).astype(np.int))
@@ -42,16 +41,16 @@ def single_experiment(sigma, order, sigma_noise, path):
 
     for i, n in enumerate(nsamples):
         print('{} Solve it for {} samples'.format(i, n), flush=True)
-        err_train[i], err_validation[i] = experiment_helper.err_svc_linear(
+        err_train[i], err_validation[i], _ = experiment_helper.err_svc_linear(
             features_train[:n], labels_train[:n], features_validation,
             labels_validation)
 
-    e_train, e_validation = experiment_helper.err_svc_linear(
+    e_train, e_validation, C = experiment_helper.err_svc_linear(
         features_train, labels_train, features_validation, labels_validation)
     print('The validation error is {}%'.format(e_validation * 100), flush=True)
 
     # Cheating in favor of SVM
-    e_train, e_test = experiment_helper.err_svc_linear(
+    e_train, e_test = experiment_helper.err_svc_linear_single(C,
         features_train, labels_train, features_test, labels_test)
     print('The test error is {}%'.format(e_test * 100), flush=True)
 

@@ -95,7 +95,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     # Optimization.
     params['decay_rate'] = 0.98
-    params['dropout'] = 0.2
+    params['dropout'] = 0.5
     params['learning_rate'] = 1e-4
     params['momentum'] = 0.9
     params['adam'] = True

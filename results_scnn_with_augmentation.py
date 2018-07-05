@@ -135,7 +135,7 @@ if __name__ == '__main__':
         sigma, order, sigma_noise = p
         print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}_ok'.format(sigma))
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

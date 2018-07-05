@@ -145,7 +145,6 @@ def healpix_graph(nside=16,
     # 3) building the graph
     G = graphs.Graph(
         W,
-        gtype='Healpix, Nside={}'.format(nside),
         lap_type=lap_type,
         coords=coords)
     return G

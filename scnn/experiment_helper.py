@@ -268,8 +268,8 @@ def err_svc_linear(x_train, labels_train, x_validation, labels_validation, nv=9)
 
     # Testing if the selected value of k is not on the border.
     t1 = (k == 0 or k == nv - 1)
-    t2 = (error_validation > errors_validation[:k]).all()
-    t3 = (error_validation > errors_validation[k + 1:]).all()
+    t2 = (error_validation < errors_validation[:k]).all()
+    t3 = (error_validation < errors_validation[k + 1:]).all()
     if t1 and t2 and t3:
         wm = '----------------\n WARNING -- k has a bad value! \n {}'
         print(wm.format(errors_validation), flush=True)

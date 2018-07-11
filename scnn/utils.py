@@ -94,6 +94,9 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     kernel_width = np.mean(distances)
     weights = np.exp(-distances / (2 * kernel_width))
 
+    # Similarity proposed by Renata & Pascal, ICCV 2017.
+    # weights = 1 / distances
+
     # Build the sparse matrix.
     W = sparse.csr_matrix(
         (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)

@@ -338,6 +338,7 @@ class cgcnn(base_model):
            The last layer is the softmax, i.e. M[-1] is the number of classes.
 
     The following are choices of implementation for various blocks.
+        conv: graph convolutional layer, e.g. chebyshev5 or monomials.
         brelu: bias and relu, e.g. b1relu or b2relu.
         pool: pooling, e.g. mpool1.
 
@@ -358,7 +359,7 @@ class cgcnn(base_model):
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
-    def __init__(self, L, F, K, p, batch_norm, M, brelu='b1relu', pool='mpool1',
+    def __init__(self, L, F, K, p, batch_norm, M, conv='chebyshev5', brelu='b1relu', pool='mpool1',
                 num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name='', adam=True, statistical_layer=False):
@@ -420,7 +421,7 @@ class cgcnn(base_model):
         self.batch_size, self.eval_frequency = batch_size, eval_frequency
         self.batch_norm = batch_norm
         self.dir_name = dir_name
-        self.filter = getattr(self, 'chebyshev5')
+        self.filter = getattr(self, conv)
         self.brelu = getattr(self, brelu)
         self.pool = getattr(self, pool)
 
@@ -456,11 +457,43 @@ class cgcnn(base_model):
             x = concat(x, x2)
             x0, x1 = x1, x2
         x = tf.reshape(x, [K, M, Fin, N])  # K x M x Fin x N
-        x = tf.transpose(x, perm=[3,1,2,0])  # N x M x Fin x K
+        x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
-        # Filter: Fin*Fout filters of order K, i.e. one filterbank per feature pair.
+        # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
         W = self._weight_variable([Fin*K, Fout], regularization=False)
 #         W = tf.Variable(initial_value=np.ones([Fin*K, Fout]), trainable=False, dtype=tf.float32)
+        x = tf.matmul(x, W)  # N*M x Fout
+        return tf.reshape(x, [N, M, Fout])  # N x M x Fout
+
+    def monomials(self, x, L, Fout, K):
+        r"""Convolution on graph with monomials."""
+        N, M, Fin = x.get_shape()
+        N, M, Fin = int(N), int(M), int(Fin)
+        # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
+        L = sparse.csr_matrix(L)
+        lmax = 1.02*sparse.linalg.eigsh(
+                L, k=1, which='LM', return_eigenvectors=False)[0]
+        L = utils.rescale_L(L, lmax=lmax)
+        L = L.tocoo()
+        indices = np.column_stack((L.row, L.col))
+        L = tf.SparseTensor(indices, L.data, L.shape)
+        L = tf.sparse_reorder(L)
+        # Transform to monomial basis.
+        x0 = tf.transpose(x, perm=[1, 2, 0])  # M x Fin x N
+        x0 = tf.reshape(x0, [M, Fin*N])  # M x Fin*N
+        x = tf.expand_dims(x0, 0)  # 1 x M x Fin*N
+        def concat(x, x_):
+            x_ = tf.expand_dims(x_, 0)  # 1 x M x Fin*N
+            return tf.concat([x, x_], axis=0)  # K x M x Fin*N
+        for k in range(1, K):
+            x1 = tf.sparse_tensor_dense_matmul(L, x0)  # M x Fin*N
+            x = concat(x, x1)
+            x0 = x1
+        x = tf.reshape(x, [K, M, Fin, N])  # K x M x Fin x N
+        x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
+        x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
+        # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
+        W = self._weight_variable([Fin*K, Fout], regularization=False)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 

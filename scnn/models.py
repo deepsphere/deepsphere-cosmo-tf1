@@ -329,6 +329,8 @@ class cgcnn(base_model):
            Beware to have coarsened enough.
         batch_norm: apply batch norm at the end of the filter (bool vector)
         L: List of Graph Laplacians. Size M x M.
+        
+        statistical_layer: if True, add a statistical layer
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
@@ -359,7 +361,7 @@ class cgcnn(base_model):
     def __init__(self, L, F, K, p, batch_norm, M, brelu='b1relu', pool='mpool1',
                 num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
-                dir_name='', adam=True):
+                dir_name='', adam=True, statistical_layer=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -372,6 +374,7 @@ class cgcnn(base_model):
         M_0 = L[0].shape[0]
         j = 0
         self.L = L
+        self._statistical_layer = statistical_layer
 
         # Print information about NN architecture.
         Ngconv = len(p)
@@ -390,11 +393,20 @@ class cgcnn(base_model):
             elif brelu == 'b2relu':
                 print('    biases: M_{0} * F_{0} = {1} * {2} = {3}'.format(
                         i+1, L[i].shape[0], F[i], L[i].shape[0]*F[i]))
+        if self._statistical_layer:
+            print('  Statistical layer')
+            print('    representation: 2 * {} = {}'.format(F[-1], 2*F[-1]))
+
         for i in range(Nfc):
             name = 'logits (softmax)' if i == Nfc-1 else 'fc{}'.format(i+1)
             print('  layer {}: {}'.format(Ngconv+i+1, name))
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
             M_last = M[i-1] if i > 0 else M_0 if Ngconv == 0 else L[-1].shape[0] * F[-1] // p[-1]
+            if i == 0 and self._statistical_layer:
+                if Ngconv == 0:
+                    M_last = 2
+                else:
+                    M_last = 2 * F[-1]
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
             print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
@@ -530,9 +542,14 @@ class cgcnn(base_model):
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
 
-        # Fully connected hidden layers.
         N, M, F = x.get_shape()
-        x = tf.reshape(x, [int(N), int(M*F)])  # N x M
+        if self._statistical_layer:
+            tmp = tf.nn.moments(x, axes=1)
+            x = tf.concat(tmp, axis=1)
+        else:
+            x = tf.reshape(x, [int(N), int(M*F)])  # N x M
+
+        # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):
             with tf.variable_scope('fc{}'.format(i+1)):
                 x = self.fc(x, M)

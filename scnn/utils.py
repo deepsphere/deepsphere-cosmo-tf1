@@ -378,3 +378,29 @@ class HiddenPrints:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout = self._original_stdout
+
+
+def compute_spherical_harmonics(nside, lmax):
+    """Compute the spherical harmonics up to lmax.
+
+    Returns
+    -------
+    harmonics: array of shape n_pixels x n_harmonics
+        Harmonics are in nested order.
+    """
+
+    n_harmonics = np.sum(np.arange(1, 2*lmax+2, 2))
+    harmonics = np.empty((hp.nside2npix(nside), n_harmonics))
+    midx = 0
+
+    for l in range(lmax+1):
+        for m in range(-l, l+1):
+            size = hp.sphtfunc.Alm.getsize(l, mmax=l)
+            alm = np.zeros(size, dtype=np.complex128)
+            idx = hp.sphtfunc.Alm.getidx(l, l, abs(m))
+            alm[idx] = 1 if m == 0 else 1 - 1j if m < 0 else 1 + 1j
+            harmonic = hp.sphtfunc.alm2map(alm, nside, l, verbose=False)
+            harmonics[:, midx] = hp.reorder(harmonic, r2n=True)
+            midx += 1
+
+    return harmonics

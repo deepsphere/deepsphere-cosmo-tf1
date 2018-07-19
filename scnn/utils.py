@@ -7,6 +7,8 @@ import healpy as hp
 from builtins import range
 import os
 import sys
+import hashlib
+import zipfile
 if sys.version_info[0] > 2:
     from urllib.request import urlretrieve
 else:
@@ -349,6 +351,25 @@ def download(url, target_dir, filename=None):
 def url_filename(url):
     return url.split('/')[-1].split('#')[0].split('?')[0]
 
+def check_md5(file_name, orginal_md5):
+    # Open,close, read file and calculate MD5 on its contents 
+    with open(file_name) as file_to_check:
+        # read contents of the file
+        data = file_to_check.read()    
+        # pipe contents of the file through
+        md5_returned = hashlib.md5(data).hexdigest()
+
+    # Finally compare original MD5 with freshly calculated
+    if orginal_md5 == md5_returned:
+        print('MD5 verified.')
+        return True
+    else:
+        print('MD5 verification failed!')
+        return False
+
+def unzip(file, targetdir):
+    with zipfile.ZipFile(file,"r") as zip_ref:
+        zip_ref.extractall(targetdir)
 
 class HiddenPrints:
     def __enter__(self):

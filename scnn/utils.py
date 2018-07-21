@@ -353,12 +353,14 @@ def url_filename(url):
 
 def check_md5(file_name, orginal_md5):
     # Open,close, read file and calculate MD5 on its contents 
-    with open(file_name) as file_to_check:
-        # read contents of the file
-        data = file_to_check.read()    
-        # pipe contents of the file through
-        md5_returned = hashlib.md5(data).hexdigest()
-
+    with open(file_name, 'rb') as f:
+        hasher = hashlib.md5()  # Make empty hasher to update piecemeal
+        while True:
+            block = f.read(64 * (1 << 20)) # Read 64 MB at a time; big, but not memory busting
+            if not block:  # Reached EOF
+                break
+            hasher.update(block)  # Update with new block
+    md5_returned = hasher.hexdigest()
     # Finally compare original MD5 with freshly calculated
     if orginal_md5 == md5_returned:
         print('MD5 verified.')

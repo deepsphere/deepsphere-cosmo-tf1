@@ -21,8 +21,8 @@ srun python results_scnn_comparison.py {0}
 '''
 
 
-def launch_simulation(sigma, order, sigma_noise):
-    sbatch_txt = txtfile.format(sigma, order, sigma_noise)
+def launch_simulation(i):
+    sbatch_txt = txtfile.format(i)
     with open('launch.sh', 'w') as file:
         file.write(sbatch_txt)
     os.system("sbatch launch.sh")

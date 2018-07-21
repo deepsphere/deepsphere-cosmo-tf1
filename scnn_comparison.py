@@ -7,15 +7,14 @@ import sys
 import numpy as np
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
-from grid import pgrid
+from grid import egrid
 
-
-def single_experiment(sigma, order, sigma_noise):
+def single_experiment(sigma, order, sigma_noise, name, **kwargs):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
-        Nside, sigma_noise, order, sigma)
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma_{}'.format(
+        Nside, sigma_noise, order, sigma, name)
 
     x_raw_train, labels_raw_train, x_raw_std = experiment_helper.get_training_data(sigma, order)
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
@@ -101,9 +100,8 @@ def single_experiment(sigma, order, sigma_noise):
     params['adam'] = True
     params['decay_steps'] = 153.6
     params['use_4'] = False
-    params['statistical_layer'] = True # Set to True for rotation invariant features
 
-    model = models.scnn(**params)
+    model = models.scnn(**params, **kwargs)
 
     # Cleanup before running again.
     shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
@@ -122,22 +120,23 @@ def single_experiment(sigma, order, sigma_noise):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 1:
-        sigma = int(sys.argv[1])
-        order = int(sys.argv[2])
-        sigma_noise = float(sys.argv[3])
-        grid = [(sigma, order, sigma_noise)]
-    else:
-        grid = pgrid()
-    path = 'results/scnn/'
+    sigma = 3
+    order = 2
+    sigma_noise = float(2)
 
+    path = 'results/scnn/'
+    experiments = egrid()
+    if len(sys.argv) > 1:
+        numel = int(sys.argv[1])
+        experiments = experiments[numel:numel+1]
     os.makedirs(path, exist_ok=True)
-    for p in grid:
-        sigma, order, sigma_noise = p
-        print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
-        res = single_experiment(sigma, order, sigma_noise)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
-        new_data = [order, sigma_noise, res]
+    for experiment in experiments:
+        name = experiment.name
+        kwargs = experiment.kwargs
+        print('Launch experiment for {}, {}, {}, {}'.format(sigma, order, sigma_noise, name))
+        res = single_experiment(sigma, order, sigma_noise, name, **kwargs)
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}_params'.format(sigma))
+        new_data = [order, sigma_noise, res, name]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()
         else:

@@ -330,7 +330,13 @@ class cgcnn(base_model):
         batch_norm: apply batch norm at the end of the filter (bool vector)
         L: List of Graph Laplacians. Size M x M.
         
-        statistical_layer: if True, add a statistical layer
+        statistical_layer: add a statistical layer to make the feature rotational invariant
+            * None: no statistical layer (default)
+            * 'mean': mean of the features
+            * 'var': variance of the features
+            * 'meanvar': mean and variance of the features
+            * 'histogram': histogram of the features
+
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
@@ -382,6 +388,7 @@ class cgcnn(base_model):
         Nfc = len(M)
         print('NN architecture')
         print('  input: M_0 = {}'.format(M_0))
+        M_last = M_0
         for i in range(Ngconv):
             print('  layer {0}: cgconv{0}'.format(i+1))
             print('    representation: M_{0} * F_{1} / p_{1} = {2} * {3} / {4} = {5}'.format(
@@ -394,23 +401,37 @@ class cgcnn(base_model):
             elif brelu == 'b2relu':
                 print('    biases: M_{0} * F_{0} = {1} * {2} = {3}'.format(
                         i+1, L[i].shape[0], F[i], L[i].shape[0]*F[i]))
+
+        if Ngconv:
+            L[-1].shape[0] * F[-1] // p[-1]
+
         if self._statistical_layer:
-            print('  Statistical layer')
-            print('    representation: 2 * {} = {}'.format(F[-1], 2*F[-1]))
+            print('hello')
+            print('  Statistical layer: {}'.format(self._statistical_layer))
+            if self._statistical_layer is 'mean':
+                print('    representation: 1 * {} = {}'.format(F[-1], F[-1]))
+                M_last = 1
+            elif self._statistical_layer is 'var':
+                print('    representation: 1 * {} = {}'.format(F[-1], F[-1]))
+                M_last = 1
+            elif self._statistical_layer is 'meanvar':
+                print('    representation: 2 * {} = {}'.format(F[-1], 2*F[-1]))
+                M_last = 2
+            elif self._statistical_layer is 'histogram':
+                nbins = 20
+                print('    representation: {} * {} = {}'.format(nbins, F[-1], nbins*F[-1]))
+                print('    weights: {} * {} = {}'.format(nbins, F[-1], nbins*F[-1]))
+                print('    biases: {} * {} = {}'.format(nbins, F[-1], nbins*F[-1]))
+                M_last = nbins
 
         for i in range(Nfc):
             name = 'logits (softmax)' if i == Nfc-1 else 'fc{}'.format(i+1)
             print('  layer {}: {}'.format(Ngconv+i+1, name))
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
-            M_last = M[i-1] if i > 0 else M_0 if Ngconv == 0 else L[-1].shape[0] * F[-1] // p[-1]
-            if i == 0 and self._statistical_layer:
-                if Ngconv == 0:
-                    M_last = 2
-                else:
-                    M_last = 2 * F[-1]
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
             print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            M_last = M[i] 
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
@@ -544,6 +565,30 @@ class cgcnn(base_model):
         else:
             return x
 
+    def histogram_layer(self, x, nbins=20):
+
+        # Define the variables
+        limit = 2.
+        wi = tf.range(0.0, limit, delta=limit/nbins, dtype=tf.float32, name='range')
+        mu = tf.Variable(
+            tf.reshape(wi, shape=[1, 1, nbins]),
+            name='mu',
+            dtype=tf.float32)
+        w = tf.get_variable(
+            name='w',
+            shape=[1, 1, nbins],
+            dtype=tf.float32,
+            initializer=tf.initializers.constant(value=1, dtype=tf.float32))
+        # constraint the weights to be positive
+        added_loss = -100*tf.minimum(tf.reduce_min(w),0) 
+        self.regularizers.append(added_loss)
+        # reshape 2d
+        x = tf.reshape(x, [tf.shape(x)[0], np.prod(x.shape.as_list()[1:])])
+        # Add dimension for the compuations
+        x = tf.expand_dims(x, axis=2)
+        hist = tf.reduce_mean(tf.nn.relu(1-tf.abs(x-mu)*w), axis=1)
+        return hist
+
     def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):
         return tf.contrib.layers.batch_norm(x,
                                             decay=decay,
@@ -577,8 +622,19 @@ class cgcnn(base_model):
 
         N, M, F = x.get_shape()
         if self._statistical_layer:
-            tmp = tf.nn.moments(x, axes=1)
-            x = tf.concat(tmp, axis=1)
+            if self._statistical_layer is 'mean':
+                tmp = tf.nn.moments(x, axes=1)
+                x = tmp[0]
+            elif self._statistical_layer is 'var':
+                tmp = tf.nn.moments(x, axes=1)
+                x = tmp[1]
+            elif self._statistical_layer is 'meanvar':
+                tmp = tf.nn.moments(x, axes=1)
+                x = tf.concat(tmp, axis=1)
+            elif self._statistical_layer is 'histogram':
+                x = self.histogram_layer(x)
+            else:
+                raise ValueError('Unknown statistical_layer type')
         else:
             x = tf.reshape(x, [int(N), int(M*F)])  # N x M
 

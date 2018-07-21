@@ -4,7 +4,7 @@ import os
 import sys
 import numpy as np
 from scnn import experiment_helper
-from pgrid import pgrid
+from grid import pgrid
 
 def single_experiment(sigma, order, sigma_noise, path):
     """Run as experiment.

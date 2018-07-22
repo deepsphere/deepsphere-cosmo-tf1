@@ -564,22 +564,23 @@ class cgcnn(base_model):
             return x
 
     def histogram_layer(self, x, nbins=20, initial_range=2):
+        M = int(x.get_shape()[2])
 
         # Variables: center and width of bins.
-        wi = tf.linspace(-float(initial_range), initial_range, nbins, name='range')
+        wi = tf.expand_dims(tf.linspace(-float(initial_range), initial_range, nbins, name='range'), axis=1)
         mu = tf.Variable(
-            tf.reshape(wi, shape=[1, 1, nbins]),
+            tf.reshape(
+            tf.transpose(tf.tile(wi, [1, M])),
+            shape=[1, 1, M, nbins]),
             name='mu',
             dtype=tf.float32)
         w = tf.get_variable(
             name='w',
-            shape=[1, 1, nbins],
+            shape=[1, 1, M, nbins],
             dtype=tf.float32,
             initializer=tf.initializers.constant(value=1, dtype=tf.float32))
-        # reshape 2d
-        x = tf.reshape(x, [tf.shape(x)[0], -1])
         # Add dimension for the computations
-        x = tf.expand_dims(x, axis=2)
+        x = tf.expand_dims(x, axis=3)
         hist = tf.reduce_mean(tf.nn.relu(1-tf.abs(x-mu)*tf.abs(w)), axis=1)
         return hist
 
@@ -616,7 +617,7 @@ class cgcnn(base_model):
 
         if self.statistical_layer is None:
             N, M, F = x.get_shape()  # #samples x #nodes x #features
-            x = tf.reshape(x, [int(N), int(M*F)])  # N x M
+            x = tf.reshape(x, [int(N), int(M*F)])  # N x M F
         elif self.statistical_layer is 'mean':
             x, _ = tf.nn.moments(x, axes=1)
         elif self.statistical_layer is 'var':
@@ -625,7 +626,10 @@ class cgcnn(base_model):
             mean, var = tf.nn.moments(x, axes=1)
             x = tf.concat([mean, var], axis=1)
         elif self.statistical_layer is 'histogram':
-            x = self.histogram_layer(x)
+            N, _, F = x.get_shape()
+            nbins = 20
+            x = self.histogram_layer(x, nbins)
+            x = tf.reshape(x, [int(N), nbins*int(F)])  # N x M nbins 
         else:
             raise ValueError('Unknown statistical_layer type')
 

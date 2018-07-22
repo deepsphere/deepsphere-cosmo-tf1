@@ -54,15 +54,17 @@ def single_experiment(sigma, order, sigma_noise):
     params['eval_frequency'] = 10
 
     # Building blocks.
+    params['conv'] = 'chebyshev5'  # Convolution.
     params['brelu'] = 'b1relu'  # Activation.
     params['pool'] = 'mpool1'  # Pooling.
+    params['statistical_layer'] = 'mean'  # Compute statistics from feature maps to get invariance.
 
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
     if order == 4:
         params['num_epochs'] = 50
-        params['batch_size'] = 20        
+        params['batch_size'] = 20
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
@@ -101,7 +103,6 @@ def single_experiment(sigma, order, sigma_noise):
     params['adam'] = True
     params['decay_steps'] = 153.6
     params['use_4'] = False
-    params['statistical_layer'] = True # Set to True for rotation invariant features
 
     model = models.scnn(**params)
 

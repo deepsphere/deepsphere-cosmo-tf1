@@ -563,10 +563,10 @@ class cgcnn(base_model):
         else:
             return x
 
-    def histogram_layer(self, x, nbins=20, limit=2):
+    def histogram_layer(self, x, nbins=20, initial_range=2):
 
         # Variables: center and width of bins.
-        wi = tf.linspace(-float(limit), limit, nbins, name='range')
+        wi = tf.linspace(-float(initial_range), initial_range, nbins, name='range')
         mu = tf.Variable(
             tf.reshape(wi, shape=[1, 1, nbins]),
             name='mu',
@@ -576,14 +576,11 @@ class cgcnn(base_model):
             shape=[1, 1, nbins],
             dtype=tf.float32,
             initializer=tf.initializers.constant(value=1, dtype=tf.float32))
-        # Constrain the weights to be positive.
-        added_loss = -100*tf.minimum(tf.reduce_min(w),0)
-        self.regularizers.append(added_loss)
         # reshape 2d
         x = tf.reshape(x, [tf.shape(x)[0], -1])
         # Add dimension for the computations
         x = tf.expand_dims(x, axis=2)
-        hist = tf.reduce_mean(tf.nn.relu(1-tf.abs(x-mu)*w), axis=1)
+        hist = tf.reduce_mean(tf.nn.relu(1-tf.abs(x-mu)*tf.abs(w)), axis=1)
         return hist
 
     def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):

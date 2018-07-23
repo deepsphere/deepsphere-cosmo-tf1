@@ -621,22 +621,23 @@ class cgcnn(base_model):
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
 
-        n_samples, n_nodes, n_features = x.get_shape()
-        if self.statistical_layer is None:
-            x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
-        elif self.statistical_layer is 'mean':
-            x, _ = tf.nn.moments(x, axes=1)
-        elif self.statistical_layer is 'var':
-            _, x = tf.nn.moments(x, axes=1)
-        elif self.statistical_layer is 'meanvar':
-            mean, var = tf.nn.moments(x, axes=1)
-            x = tf.concat([mean, var], axis=1)
-        elif self.statistical_layer is 'histogram':
-            n_bins = 20
-            x = self.learned_histogram(x, n_bins)
-            x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
-        else:
-            raise ValueError('Unknown statistical layer {}'.format(self.statistical_layer))
+        with tf.variable_scope('stat'):
+            n_samples, n_nodes, n_features = x.get_shape()
+            if self.statistical_layer is None:
+                x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
+            elif self.statistical_layer is 'mean':
+                x, _ = tf.nn.moments(x, axes=1)
+            elif self.statistical_layer is 'var':
+                _, x = tf.nn.moments(x, axes=1)
+            elif self.statistical_layer is 'meanvar':
+                mean, var = tf.nn.moments(x, axes=1)
+                x = tf.concat([mean, var], axis=1)
+            elif self.statistical_layer is 'histogram':
+                n_bins = 20
+                x = self.learned_histogram(x, n_bins)
+                x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
+            else:
+                raise ValueError('Unknown statistical layer {}'.format(self.statistical_layer))
 
         # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):

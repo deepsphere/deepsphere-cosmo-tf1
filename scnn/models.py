@@ -578,11 +578,12 @@ class cgcnn(base_model):
             tf.reshape(tf.transpose(centers), shape=[1, 1, n_features, bins]),
             name='centers',
             dtype=tf.float32)
+        width = 4 * initial_range / bins  # 50% overlap between bins.
         widths = tf.get_variable(
             name='widths',
             shape=[1, 1, n_features, bins],
             dtype=tf.float32,
-            initializer=tf.initializers.constant(value=1, dtype=tf.float32))
+            initializer=tf.initializers.constant(value=width, dtype=tf.float32))
         x = tf.expand_dims(x, axis=3)
         # All are rank-4 tensors: samples, nodes, features, bins.
         widths = tf.abs(widths)

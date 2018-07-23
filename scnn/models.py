@@ -563,25 +563,31 @@ class cgcnn(base_model):
         else:
             return x
 
-    def histogram_layer(self, x, nbins=20, initial_range=2):
-        M = int(x.get_shape()[2])
+    def learned_histogram(self, x, bins=20, initial_range=2):
+        """A learned histogram layer.
 
-        # Variables: center and width of bins.
-        wi = tf.expand_dims(tf.linspace(-float(initial_range), initial_range, nbins, name='range'), axis=1)
-        mu = tf.Variable(
-            tf.reshape(
-            tf.transpose(tf.tile(wi, [1, M])),
-            shape=[1, 1, M, nbins]),
-            name='mu',
+        The center and width of each bin is optimized.
+        One histogram is learned per feature map.
+        """
+        # Shape of x: #samples x #nodes x #features.
+        n_features = int(x.get_shape()[2])
+        centers = tf.linspace(-float(initial_range), initial_range, bins, name='range')
+        centers = tf.expand_dims(centers, axis=1)
+        centers = tf.tile(centers, [1, n_features])  # One histogram per feature channel.
+        centers = tf.Variable(
+            tf.reshape(tf.transpose(centers), shape=[1, 1, n_features, bins]),
+            name='centers',
             dtype=tf.float32)
-        w = tf.get_variable(
-            name='w',
-            shape=[1, 1, M, nbins],
+        widths = tf.get_variable(
+            name='widths',
+            shape=[1, 1, n_features, bins],
             dtype=tf.float32,
             initializer=tf.initializers.constant(value=1, dtype=tf.float32))
-        # Add dimension for the computations
         x = tf.expand_dims(x, axis=3)
-        hist = tf.reduce_mean(tf.nn.relu(1-tf.abs(x-mu)*tf.abs(w)), axis=1)
+        # All are rank-4 tensors: samples, nodes, features, bins.
+        widths = tf.abs(widths)
+        dist = tf.abs(x - centers)
+        hist = tf.reduce_mean(tf.nn.relu(1 - dist * widths), axis=1)
         return hist
 
     def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):
@@ -615,9 +621,9 @@ class cgcnn(base_model):
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
 
+        n_samples, n_nodes, n_features = x.get_shape()
         if self.statistical_layer is None:
-            N, M, F = x.get_shape()  # #samples x #nodes x #features
-            x = tf.reshape(x, [int(N), int(M*F)])  # N x M F
+            x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
         elif self.statistical_layer is 'mean':
             x, _ = tf.nn.moments(x, axes=1)
         elif self.statistical_layer is 'var':
@@ -626,12 +632,11 @@ class cgcnn(base_model):
             mean, var = tf.nn.moments(x, axes=1)
             x = tf.concat([mean, var], axis=1)
         elif self.statistical_layer is 'histogram':
-            N, _, F = x.get_shape()
-            nbins = 20
-            x = self.histogram_layer(x, nbins)
-            x = tf.reshape(x, [int(N), nbins*int(F)])  # N x M nbins 
+            n_bins = 20
+            x = self.learned_histogram(x, n_bins)
+            x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
         else:
-            raise ValueError('Unknown statistical_layer type')
+            raise ValueError('Unknown statistical layer {}'.format(self.statistical_layer))
 
         # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):

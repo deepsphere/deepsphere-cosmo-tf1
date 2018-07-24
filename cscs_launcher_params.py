@@ -1,13 +1,13 @@
 import os
-from grid import pgrid
+from grid import egrid
 
 txtfile = '''#!/bin/bash -l
 #SBATCH --time=23:59:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --constraint=gpu
-#SBATCH --output=scnn-{0}-{1}-{2}-%j.log
-#SBATCH --error=scnn-{0}-{1}-{2}-%j.log
+#SBATCH --output=scnn-{0}-%j.log
+#SBATCH --error=scnn-{0}-%j.log
 
 module load daint-gpu
 module load cray-python
@@ -17,17 +17,17 @@ source $HOME/scnn/bin/activate
 
 
 cd $SCRATCH/scnn/
-srun python results_scnn_with_augmentation.py {0} {1} {2}
+srun python results_scnn_comparison.py {0}
 '''
 
 
-def launch_simulation(sigma, order, sigma_noise):
-    sbatch_txt = txtfile.format(sigma, order, sigma_noise)
+def launch_simulation(i):
+    sbatch_txt = txtfile.format(i)
     with open('launch.sh', 'w') as file:
         file.write(sbatch_txt)
     os.system("sbatch launch.sh")
     os.remove('launch.sh')
 
-grid = pgrid()
-for p in grid:
-    launch_simulation(*p)
+num = len(egrid())
+for i in range(num):
+    launch_simulation(i)

@@ -280,7 +280,8 @@ class base_model(object):
                 else:
                     tf.summary.histogram(var.op.name + '/gradients', grad)
             # The op return the learning rate.
-            with tf.control_dependencies([op_gradients]):
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies([op_gradients] + update_ops):
                 op_train = tf.identity(learning_rate, name='control')
             return op_train
 
@@ -327,7 +328,7 @@ class cgcnn(base_model):
         p: Pooling size.
            Should be 1 (no pooling) or a power of 2 (reduction by 2 at each coarser level).
            Beware to have coarsened enough.
-        batch_norm: apply batch norm at the end of the filter (bool vector)
+        batch_norm: apply batch normalization after filtering (boolean vector)
         L: List of Graph Laplacians. Size M x M.
 
     The following are hyper-parameters of fully connected layers.
@@ -336,8 +337,15 @@ class cgcnn(base_model):
            The last layer is the softmax, i.e. M[-1] is the number of classes.
 
     The following are choices of implementation for various blocks.
-        brelu: bias and relu, e.g. b1relu or b2relu.
-        pool: pooling, e.g. mpool1.
+        conv: graph convolutional layer, e.g. chebyshev5 or monomials.
+        pool: pooling, e.g. max or average.
+        activation: non-linearity, e.g. relu, elu, leaky_relu.
+        statistics: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
+            * None: no statistical layer (default)
+            * 'mean': compute the mean of each feature map
+            * 'var': compute the variance of each feature map
+            * 'meanvar': compute the mean and variance of each feature map
+            * 'histogram': compute a learned histogram of each feature map
 
     Training parameters:
         num_epochs:    Number of training epochs.
@@ -356,10 +364,11 @@ class cgcnn(base_model):
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
-    def __init__(self, L, F, K, p, batch_norm, M, brelu='b1relu', pool='mpool1',
-                num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
+
+    def __init__(self, L, F, K, p, batch_norm, M, conv='chebyshev5', pool='max', activation='relu', statistics=None,
+                num_epochs=20, adam=True, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
-                dir_name='', adam=True):
+                dir_name=''):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -378,6 +387,7 @@ class cgcnn(base_model):
         Nfc = len(M)
         print('NN architecture')
         print('  input: M_0 = {}'.format(M_0))
+        M_last = M_0
         for i in range(Ngconv):
             print('  layer {0}: cgconv{0}'.format(i+1))
             print('    representation: M_{0} * F_{1} / p_{1} = {2} * {3} / {4} = {5}'.format(
@@ -385,19 +395,37 @@ class cgcnn(base_model):
             F_last = F[i-1] if i > 0 else 1
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
-            if brelu == 'b1relu':
-                print('    biases: F_{} = {}'.format(i+1, F[i]))
-            elif brelu == 'b2relu':
-                print('    biases: M_{0} * F_{0} = {1} * {2} = {3}'.format(
-                        i+1, L[i].shape[0], F[i], L[i].shape[0]*F[i]))
+            print('    biases: F_{} = {}'.format(i+1, F[i]))
+
+        if Ngconv:
+            M_last = L[-1].shape[0] * F[-1] // p[-1]
+
+        if statistics is not None:
+            print('  Statistical layer: {}'.format(statistics))
+            if statistics is 'mean':
+                M_last = F[-1]
+                print('    representation: 1 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'var':
+                M_last = F[-1]
+                print('    representation: 1 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'meanvar':
+                M_last = 2 * F[-1]
+                print('    representation: 2 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'histogram':
+                nbins = 20
+                M_last = nbins * F[-1]
+                print('    representation: {} * {} = {}'.format(nbins, F[-1], M_last))
+                print('    weights: {} * {} = {}'.format(nbins, F[-1], M_last))
+                print('    biases: {} * {} = {}'.format(nbins, F[-1], M_last))
+
         for i in range(Nfc):
             name = 'logits (softmax)' if i == Nfc-1 else 'fc{}'.format(i+1)
             print('  layer {}: {}'.format(Ngconv+i+1, name))
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
-            M_last = M[i-1] if i > 0 else M_0 if Ngconv == 0 else L[-1].shape[0] * F[-1] // p[-1]
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
             print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            M_last = M[i]
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
@@ -408,9 +436,10 @@ class cgcnn(base_model):
         self.batch_size, self.eval_frequency = batch_size, eval_frequency
         self.batch_norm = batch_norm
         self.dir_name = dir_name
-        self.filter = getattr(self, 'chebyshev5')
-        self.brelu = getattr(self, brelu)
-        self.pool = getattr(self, pool)
+        self.filter = getattr(self, conv)
+        self.pool = getattr(self, 'pool_' + pool)
+        self.activation = getattr(tf.nn, activation)
+        self.statistics = statistics
 
         # Build the computational graph.
         self.build_graph(M_0)
@@ -444,53 +473,62 @@ class cgcnn(base_model):
             x = concat(x, x2)
             x0, x1 = x1, x2
         x = tf.reshape(x, [K, M, Fin, N])  # K x M x Fin x N
-        x = tf.transpose(x, perm=[3,1,2,0])  # N x M x Fin x K
+        x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
-        # Filter: Fin*Fout filters of order K, i.e. one filterbank per feature pair.
+        # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
         W = self._weight_variable([Fin*K, Fout], regularization=False)
 #         W = tf.Variable(initial_value=np.ones([Fin*K, Fout]), trainable=False, dtype=tf.float32)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
-    def b1relu(self, x):
-        """Bias and ReLU. One bias per filter."""
+    def monomials(self, x, L, Fout, K):
+        r"""Convolution on graph with monomials."""
+        N, M, Fin = x.get_shape()
+        N, M, Fin = int(N), int(M), int(Fin)
+        # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
+        L = sparse.csr_matrix(L)
+        lmax = 1.02*sparse.linalg.eigsh(
+                L, k=1, which='LM', return_eigenvectors=False)[0]
+        L = utils.rescale_L(L, lmax=lmax)
+        L = L.tocoo()
+        indices = np.column_stack((L.row, L.col))
+        L = tf.SparseTensor(indices, L.data, L.shape)
+        L = tf.sparse_reorder(L)
+        # Transform to monomial basis.
+        x0 = tf.transpose(x, perm=[1, 2, 0])  # M x Fin x N
+        x0 = tf.reshape(x0, [M, Fin*N])  # M x Fin*N
+        x = tf.expand_dims(x0, 0)  # 1 x M x Fin*N
+        def concat(x, x_):
+            x_ = tf.expand_dims(x_, 0)  # 1 x M x Fin*N
+            return tf.concat([x, x_], axis=0)  # K x M x Fin*N
+        for k in range(1, K):
+            x1 = tf.sparse_tensor_dense_matmul(L, x0)  # M x Fin*N
+            x = concat(x, x1)
+            x0 = x1
+        x = tf.reshape(x, [K, M, Fin, N])  # K x M x Fin x N
+        x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
+        x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
+        # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
+        W = self._weight_variable([Fin*K, Fout], regularization=False)
+        x = tf.matmul(x, W)  # N*M x Fout
+        return tf.reshape(x, [N, M, Fout])  # N x M x Fout
+
+    def bias(self, x):
+        """Add one bias per filter."""
         N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=False)
-        return tf.nn.relu(x + b)
+        b = self._bias_variable([1, 1, int(F)], regularization=True)
+        return x + b
 
-    def b1lrelu(self, x):
-        """Bias and Leak ReLU. One bias per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=False)
-        return self.lrelu(x + b)
-
-    def lrelu(self, x, leak=0.2):
-        ''' Leak relu '''
-        return tf.maximum(x, leak*x)
-
-    def b2relu(self, x):
-        """Bias and ReLU. One bias per vertex per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, int(M), int(F)], regularization=False)
-        return tf.nn.relu(x + b)
-
-    def b2lrelu(self, x):
-        """Bias and ReLU. One bias per vertex per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, int(M), int(F)], regularization=False)
-        return self.lrelu(x + b)
-
-    def mpool1(self, x, p):
+    def pool_max(self, x, p):
         """Max pooling of size p. Should be a power of 2."""
         if p > 1:
             x = tf.expand_dims(x, 3)  # N x M x F x 1
             x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
-            #tf.maximum
             return tf.squeeze(x, [3])  # N x M/p x F
         else:
             return x
 
-    def apool1(self, x, p):
+    def pool_average(self, x, p):
         """Average pooling of size p. Should be a power of 2."""
         if p > 1:
             x = tf.expand_dims(x, 3)  # N x M x F x 1
@@ -499,49 +537,96 @@ class cgcnn(base_model):
         else:
             return x
 
-    def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):
-        return tf.contrib.layers.batch_norm(x,
-                                            decay=decay,
-                                            updates_collections=None,
-                                            epsilon=epsilon,
-                                            scale=True,
-                                            is_training=training)
+    def learned_histogram(self, x, bins=20, initial_range=2):
+        """A learned histogram layer.
 
-    def fc(self, x, Mout, relu=True):
+        The center and width of each bin is optimized.
+        One histogram is learned per feature map.
+        """
+        # Shape of x: #samples x #nodes x #features.
+        n_features = int(x.get_shape()[2])
+        centers = tf.linspace(-float(initial_range), initial_range, bins, name='range')
+        centers = tf.expand_dims(centers, axis=1)
+        centers = tf.tile(centers, [1, n_features])  # One histogram per feature channel.
+        centers = tf.Variable(
+            tf.reshape(tf.transpose(centers), shape=[1, 1, n_features, bins]),
+            name='centers',
+            dtype=tf.float32)
+        width = 4 * initial_range / bins  # 50% overlap between bins.
+        widths = tf.get_variable(
+            name='widths',
+            shape=[1, 1, n_features, bins],
+            dtype=tf.float32,
+            initializer=tf.initializers.constant(value=width, dtype=tf.float32))
+        x = tf.expand_dims(x, axis=3)
+        # All are rank-4 tensors: samples, nodes, features, bins.
+        widths = tf.abs(widths)
+        dist = tf.abs(x - centers)
+        hist = tf.reduce_sum(tf.nn.relu(1 - dist * widths), axis=1) / bins
+        return hist
+
+    def batch_normalization(self, x, training, momentum=0.9):
+        # Normalize over all but the last dimension, that is the features.
+        return tf.layers.batch_normalization(x,
+                                             axis=-1,
+                                             momentum=momentum,
+                                             epsilon=1e-5,
+                                             center=False,  # Done by bias.
+                                             scale=False,  # Done by filters.
+                                             training=training)
+
+    def fc(self, x, Mout):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
         W = self._weight_variable([int(Min), Mout], regularization=True)
         b = self._bias_variable([Mout], regularization=True)
-        x = tf.matmul(x, W) + b
-        return tf.nn.relu(x) if relu else x
+        return tf.matmul(x, W) + b
 
     def _inference(self, x, training):
+
         # Graph convolutional layers.
         x = tf.expand_dims(x, 2)  # N x M x F=1
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
-                with tf.name_scope('batch_norm'):
-                    if self.batch_norm[i]:
-                        x = self.batch_normalization(x, training)
-                with tf.name_scope('bias_relu'):
-                    x = self.brelu(x)
+                if self.batch_norm[i]:
+                    x = self.batch_normalization(x, training)
+                x = self.bias(x)
+                x = self.activation(x)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
 
+        # Statistical layer (provides invariance to translation and rotation).
+        with tf.variable_scope('stat'):
+            n_samples, n_nodes, n_features = x.get_shape()
+            if self.statistics is None:
+                x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
+            elif self.statistics is 'mean':
+                x, _ = tf.nn.moments(x, axes=1)
+            elif self.statistics is 'var':
+                _, x = tf.nn.moments(x, axes=1)
+            elif self.statistics is 'meanvar':
+                mean, var = tf.nn.moments(x, axes=1)
+                x = tf.concat([mean, var], axis=1)
+            elif self.statistics is 'histogram':
+                n_bins = 20
+                x = self.learned_histogram(x, n_bins)
+                x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
+            else:
+                raise ValueError('Unknown statistical layer {}'.format(self.statistics))
+
         # Fully connected hidden layers.
-        N, M, F = x.get_shape()
-        x = tf.reshape(x, [int(N), int(M*F)])  # N x M
         for i, M in enumerate(self.M[:-1]):
             with tf.variable_scope('fc{}'.format(i+1)):
                 x = self.fc(x, M)
+                x = self.activation(x)
                 dropout = tf.cond(training, lambda: float(self.dropout), lambda: 1.0)
                 x = tf.nn.dropout(x, dropout)
 
         # Logits linear layer, i.e. softmax without normalization.
         with tf.variable_scope('logits'):
-            x = self.fc(x, self.M[-1], relu=False)
+            x = self.fc(x, self.M[-1])
         return x
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
@@ -606,8 +691,15 @@ class scnn(cgcnn):
            The last layer is the softmax, i.e. M[-1] is the number of classes.
 
     The following are choices of implementation for various blocks.
-        brelu: bias and relu, e.g. b1relu or b2relu.
-        pool: pooling, e.g. mpool1.
+        conv: graph convolutional layer, e.g. chebyshev5 or monomials.
+        pool: pooling, e.g. max or average.
+        activation: non-linearity, e.g. relu, elu, leaky_relu.
+        statistics: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
+            * None: no statistical layer (default)
+            * 'mean': compute the mean of each feature map
+            * 'var': compute the variance of each feature map
+            * 'meanvar': compute the mean and variance of each feature map
+            * 'histogram': compute a learned histogram of each feature map
 
     Training parameters:
         num_epochs:    Number of training epochs.

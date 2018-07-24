@@ -74,8 +74,8 @@ def smooth(inpath, outpath, sigma):
 
 
 if __name__ == '__main__':
-    convert(inpath='data/data_v5/', outpath='data/same_psd/')
-    convert(inpath='data/data_testing/', outpath='data/same_psd_testing/')
-    for sigma in [1, 2, 3]:
+    convert(inpath='data/training/', outpath='data/same_psd/')
+    convert(inpath='data/testing/', outpath='data/same_psd_testing/')
+    for sigma in [3]:
         smooth(inpath='data/same_psd/', outpath='data/same_psd/', sigma=sigma)
         smooth(inpath='data/same_psd_testing/', outpath='data/same_psd_testing/', sigma=sigma)

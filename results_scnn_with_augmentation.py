@@ -11,7 +11,7 @@ from grid import pgrid
 
 
 def single_experiment(sigma, order, sigma_noise):
-
+    use_stat_layer = False
     Nside = 1024
 
     EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
@@ -57,8 +57,10 @@ def single_experiment(sigma, order, sigma_noise):
     params['conv'] = 'chebyshev5'  # Convolution.
     params['pool'] = 'max'  # Pooling: max or average.
     params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
-    params['statistics'] = 'mean'  # Compute statistics from feature maps to get invariance.
-
+    if use_stat_layer:
+        params['statistics'] = 'meanvar'  # Compute statistics from feature maps to get invariance.
+    else:
+        params['statistics'] = None
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.

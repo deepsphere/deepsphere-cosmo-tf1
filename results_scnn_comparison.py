@@ -20,7 +20,7 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
 
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
-    features_train, labels_train, features_validation, labels_validation, features_test = ret 
+    features_train, labels_train, features_validation, labels_validation, features_test = ret
 
     training = LabeledDatasetWithNoise(features_train, labels_train, start_level=0, end_level=sigma_noise, nit=len(labels_train) // 10 )
     validation = LabeledDataset(features_validation, labels_validation)
@@ -53,15 +53,15 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
     params['eval_frequency'] = 10
 
     # Building blocks.
-    params['brelu'] = 'b1relu'  # Activation.
-    params['pool'] = 'mpool1'  # Pooling.
+    params['pool'] = 'max'  # Pooling: max or average.
+    params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
 
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
     if order == 4:
         params['num_epochs'] = 50
-        params['batch_size'] = 20        
+        params['batch_size'] = 20
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.

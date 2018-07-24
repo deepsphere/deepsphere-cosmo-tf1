@@ -21,7 +21,7 @@ def single_experiment(sigma, order, sigma_noise):
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
 
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
-    features_train, labels_train, features_validation, labels_validation, features_test = ret 
+    features_train, labels_train, features_validation, labels_validation, features_test = ret
 
     training = LabeledDatasetWithNoise(features_train, labels_train, start_level=0, end_level=sigma_noise, nit=len(labels_train) // 10 )
     validation = LabeledDataset(features_validation, labels_validation)
@@ -55,9 +55,9 @@ def single_experiment(sigma, order, sigma_noise):
 
     # Building blocks.
     params['conv'] = 'chebyshev5'  # Convolution.
-    params['brelu'] = 'b1relu'  # Activation.
-    params['pool'] = 'mpool1'  # Pooling.
-    params['statistical_layer'] = 'mean'  # Compute statistics from feature maps to get invariance.
+    params['pool'] = 'max'  # Pooling: max or average.
+    params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
+    params['statistics'] = 'mean'  # Compute statistics from feature maps to get invariance.
 
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.

@@ -17,15 +17,15 @@ def egrid():
     experiment = collections.namedtuple('experiment', 'name kwargs')
 
     experiments = []
-    experiments.append(experiment('no_stat_cheby',{'conv': 'chebyshev5', 'statistical_layer': None}))
-    experiments.append(experiment('no_stat_monomial',{'conv': 'monomials', 'statistical_layer': None}))
-    experiments.append(experiment('mean_cheby',{'conv': 'chebyshev5', 'statistical_layer': 'mean'}))
-    experiments.append(experiment('mean_monomial',{'conv': 'monomials', 'statistical_layer': 'mean'}))
-    experiments.append(experiment('var_cheby',{'conv': 'chebyshev5', 'statistical_layer': 'var'}))
-    experiments.append(experiment('var_monomial',{'conv': 'monomials', 'statistical_layer': 'var'}))
-    experiments.append(experiment('meanvar_cheby',{'conv': 'chebyshev5', 'statistical_layer': 'meanvar'}))
-    experiments.append(experiment('meanvar_monomial',{'conv': 'monomials', 'statistical_layer': 'meanvar'}))
-    experiments.append(experiment('histogram_cheby',{'conv': 'chebyshev5', 'statistical_layer': 'histogram'}))
-    experiments.append(experiment('histogram_monomial',{'conv': 'monomials', 'statistical_layer': 'histogram'}))
+    experiments.append(experiment('no_stat_cheby',{'conv': 'chebyshev5', 'statistics': None}))
+    experiments.append(experiment('no_stat_monomial',{'conv': 'monomials', 'statistics': None}))
+    experiments.append(experiment('mean_cheby',{'conv': 'chebyshev5', 'statistics': 'mean'}))
+    experiments.append(experiment('mean_monomial',{'conv': 'monomials', 'statistics': 'mean'}))
+    experiments.append(experiment('var_cheby',{'conv': 'chebyshev5', 'statistics': 'var'}))
+    experiments.append(experiment('var_monomial',{'conv': 'monomials', 'statistics': 'var'}))
+    experiments.append(experiment('meanvar_cheby',{'conv': 'chebyshev5', 'statistics': 'meanvar'}))
+    experiments.append(experiment('meanvar_monomial',{'conv': 'monomials', 'statistics': 'meanvar'}))
+    experiments.append(experiment('histogram_cheby',{'conv': 'chebyshev5', 'statistics': 'histogram'}))
+    experiments.append(experiment('histogram_monomial',{'conv': 'monomials', 'statistics': 'histogram'}))
 
     return experiments

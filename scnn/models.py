@@ -280,7 +280,8 @@ class base_model(object):
                 else:
                     tf.summary.histogram(var.op.name + '/gradients', grad)
             # The op return the learning rate.
-            with tf.control_dependencies([op_gradients]):
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies([op_gradients] + update_ops):
                 op_train = tf.identity(learning_rate, name='control')
             return op_train
 
@@ -327,7 +328,7 @@ class cgcnn(base_model):
         p: Pooling size.
            Should be 1 (no pooling) or a power of 2 (reduction by 2 at each coarser level).
            Beware to have coarsened enough.
-        batch_norm: apply batch norm at the end of the filter (bool vector)
+        batch_norm: apply batch normalization after filtering (boolean vector)
         L: List of Graph Laplacians. Size M x M.
 
     The following are hyper-parameters of fully connected layers.
@@ -337,9 +338,9 @@ class cgcnn(base_model):
 
     The following are choices of implementation for various blocks.
         conv: graph convolutional layer, e.g. chebyshev5 or monomials.
-        brelu: bias and relu, e.g. b1relu or b2relu.
-        pool: pooling, e.g. mpool1.
-        statistical_layer: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
+        pool: pooling, e.g. max or average.
+        activation: non-linearity, e.g. relu, elu, leaky_relu.
+        statistics: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
             * None: no statistical layer (default)
             * 'mean': compute the mean of each feature map
             * 'var': compute the variance of each feature map
@@ -364,7 +365,7 @@ class cgcnn(base_model):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, L, F, K, p, batch_norm, M, conv='chebyshev5', brelu='b1relu', pool='mpool1', statistical_layer=None,
+    def __init__(self, L, F, K, p, batch_norm, M, conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 num_epochs=20, adam=True, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name=''):
@@ -394,27 +395,23 @@ class cgcnn(base_model):
             F_last = F[i-1] if i > 0 else 1
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
-            if brelu == 'b1relu':
-                print('    biases: F_{} = {}'.format(i+1, F[i]))
-            elif brelu == 'b2relu':
-                print('    biases: M_{0} * F_{0} = {1} * {2} = {3}'.format(
-                        i+1, L[i].shape[0], F[i], L[i].shape[0]*F[i]))
+            print('    biases: F_{} = {}'.format(i+1, F[i]))
 
         if Ngconv:
             M_last = L[-1].shape[0] * F[-1] // p[-1]
 
-        if statistical_layer is not None:
-            print('  Statistical layer: {}'.format(statistical_layer))
-            if statistical_layer is 'mean':
+        if statistics is not None:
+            print('  Statistical layer: {}'.format(statistics))
+            if statistics is 'mean':
                 M_last = F[-1]
                 print('    representation: 1 * {} = {}'.format(F[-1], M_last))
-            elif statistical_layer is 'var':
+            elif statistics is 'var':
                 M_last = F[-1]
                 print('    representation: 1 * {} = {}'.format(F[-1], M_last))
-            elif statistical_layer is 'meanvar':
+            elif statistics is 'meanvar':
                 M_last = 2 * F[-1]
                 print('    representation: 2 * {} = {}'.format(F[-1], M_last))
-            elif statistical_layer is 'histogram':
+            elif statistics is 'histogram':
                 nbins = 20
                 M_last = nbins * F[-1]
                 print('    representation: {} * {} = {}'.format(nbins, F[-1], M_last))
@@ -440,9 +437,9 @@ class cgcnn(base_model):
         self.batch_norm = batch_norm
         self.dir_name = dir_name
         self.filter = getattr(self, conv)
-        self.brelu = getattr(self, brelu)
-        self.pool = getattr(self, pool)
-        self.statistical_layer = statistical_layer
+        self.pool = getattr(self, 'pool_' + pool)
+        self.activation = getattr(tf.nn, activation)
+        self.statistics = statistics
 
         # Build the computational graph.
         self.build_graph(M_0)
@@ -516,45 +513,22 @@ class cgcnn(base_model):
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
-    def b1relu(self, x):
-        """Bias and ReLU. One bias per filter."""
+    def bias(self, x):
+        """Add one bias per filter."""
         N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=False)
-        return tf.nn.relu(x + b)
+        b = self._bias_variable([1, 1, int(F)], regularization=True)
+        return x + b
 
-    def b1lrelu(self, x):
-        """Bias and Leak ReLU. One bias per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=False)
-        return self.lrelu(x + b)
-
-    def lrelu(self, x, leak=0.2):
-        ''' Leak relu '''
-        return tf.maximum(x, leak*x)
-
-    def b2relu(self, x):
-        """Bias and ReLU. One bias per vertex per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, int(M), int(F)], regularization=False)
-        return tf.nn.relu(x + b)
-
-    def b2lrelu(self, x):
-        """Bias and ReLU. One bias per vertex per filter."""
-        N, M, F = x.get_shape()
-        b = self._bias_variable([1, int(M), int(F)], regularization=False)
-        return self.lrelu(x + b)
-
-    def mpool1(self, x, p):
+    def pool_max(self, x, p):
         """Max pooling of size p. Should be a power of 2."""
         if p > 1:
             x = tf.expand_dims(x, 3)  # N x M x F x 1
             x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
-            #tf.maximum
             return tf.squeeze(x, [3])  # N x M/p x F
         else:
             return x
 
-    def apool1(self, x, p):
+    def pool_average(self, x, p):
         """Average pooling of size p. Should be a power of 2."""
         if p > 1:
             x = tf.expand_dims(x, 3)  # N x M x F x 1
@@ -591,65 +565,68 @@ class cgcnn(base_model):
         hist = tf.reduce_sum(tf.nn.relu(1 - dist * widths), axis=1) / bins
         return hist
 
-    def batch_normalization(self, x, training, epsilon=1e-5, decay=0.9):
-        return tf.contrib.layers.batch_norm(x,
-                                            decay=decay,
-                                            updates_collections=None,
-                                            epsilon=epsilon,
-                                            scale=True,
-                                            is_training=training)
+    def batch_normalization(self, x, training, momentum=0.9):
+        # Normalize over all but the last dimension, that is the features.
+        return tf.layers.batch_normalization(x,
+                                             axis=-1,
+                                             momentum=momentum,
+                                             epsilon=1e-5,
+                                             center=False,  # Done by bias.
+                                             scale=False,  # Done by filters.
+                                             training=training)
 
-    def fc(self, x, Mout, relu=True):
+    def fc(self, x, Mout):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
         W = self._weight_variable([int(Min), Mout], regularization=True)
         b = self._bias_variable([Mout], regularization=True)
-        x = tf.matmul(x, W) + b
-        return tf.nn.relu(x) if relu else x
+        return tf.matmul(x, W) + b
 
     def _inference(self, x, training):
+
         # Graph convolutional layers.
         x = tf.expand_dims(x, 2)  # N x M x F=1
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
-                with tf.name_scope('batch_norm'):
-                    if self.batch_norm[i]:
-                        x = self.batch_normalization(x, training)
-                with tf.name_scope('bias_relu'):
-                    x = self.brelu(x)
+                if self.batch_norm[i]:
+                    x = self.batch_normalization(x, training)
+                x = self.bias(x)
+                x = self.activation(x)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
 
+        # Statistical layer (provides invariance to translation and rotation).
         with tf.variable_scope('stat'):
             n_samples, n_nodes, n_features = x.get_shape()
-            if self.statistical_layer is None:
+            if self.statistics is None:
                 x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
-            elif self.statistical_layer is 'mean':
+            elif self.statistics is 'mean':
                 x, _ = tf.nn.moments(x, axes=1)
-            elif self.statistical_layer is 'var':
+            elif self.statistics is 'var':
                 _, x = tf.nn.moments(x, axes=1)
-            elif self.statistical_layer is 'meanvar':
+            elif self.statistics is 'meanvar':
                 mean, var = tf.nn.moments(x, axes=1)
                 x = tf.concat([mean, var], axis=1)
-            elif self.statistical_layer is 'histogram':
+            elif self.statistics is 'histogram':
                 n_bins = 20
                 x = self.learned_histogram(x, n_bins)
                 x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
             else:
-                raise ValueError('Unknown statistical layer {}'.format(self.statistical_layer))
+                raise ValueError('Unknown statistical layer {}'.format(self.statistics))
 
         # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):
             with tf.variable_scope('fc{}'.format(i+1)):
                 x = self.fc(x, M)
+                x = self.activation(x)
                 dropout = tf.cond(training, lambda: float(self.dropout), lambda: 1.0)
                 x = tf.nn.dropout(x, dropout)
 
         # Logits linear layer, i.e. softmax without normalization.
         with tf.variable_scope('logits'):
-            x = self.fc(x, self.M[-1], relu=False)
+            x = self.fc(x, self.M[-1])
         return x
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
@@ -714,8 +691,15 @@ class scnn(cgcnn):
            The last layer is the softmax, i.e. M[-1] is the number of classes.
 
     The following are choices of implementation for various blocks.
-        brelu: bias and relu, e.g. b1relu or b2relu.
-        pool: pooling, e.g. mpool1.
+        conv: graph convolutional layer, e.g. chebyshev5 or monomials.
+        pool: pooling, e.g. max or average.
+        activation: non-linearity, e.g. relu, elu, leaky_relu.
+        statistics: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
+            * None: no statistical layer (default)
+            * 'mean': compute the mean of each feature map
+            * 'var': compute the variance of each feature map
+            * 'meanvar': compute the mean and variance of each feature map
+            * 'histogram': compute a learned histogram of each feature map
 
     Training parameters:
         num_epochs:    Number of training epochs.

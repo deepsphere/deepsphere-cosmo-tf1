@@ -482,8 +482,8 @@ class cgcnn(base_model):
 
     def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
         """Xavier like weight initializer for cheby coefficients."""
-        stddev = np.sqrt(Fin * (K+0.5)/2)
-        return self._bias_variable_fc([Fin*K, Fout], stddev=stddev, regularization=regularization)
+        stddev = 1/np.sqrt(Fin * (K+0.5)/2)
+        return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
 
 
     def monomials(self, x, L, Fout, K):
@@ -590,8 +590,8 @@ class cgcnn(base_model):
 
     def _weight_variable_fc(self, Min, Mout, regularization=True):
         """Xavier like weight initializer for fully connected layer."""
-        stddev = np.sqrt(Min)
-        return self._bias_variable_fc([Min, Mout], stddev=stddev, regularization=regularization)
+        stddev = 1/np.sqrt(Min)
+        return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
 

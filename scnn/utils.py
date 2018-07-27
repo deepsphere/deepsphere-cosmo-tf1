@@ -171,13 +171,13 @@ def healpix_laplacian(nside=16,
     return L
 
 
-def rescale_L(L, lmax=2):
-    """Rescale the Laplacian eigenvalues in [-1,1]."""
+def rescale_L(L, lmax=2, scale=1):
+    """Rescale the Laplacian eigenvalues in [-scale,scale]."""
     M, M = L.shape
     I = sparse.identity(M, format='csr', dtype=L.dtype)
-    L /= lmax / 2
+    L /= (lmax / 2)
     L -= I
-    return L
+    return L*scale
 
 
 def build_laplacians(nsides, indexes=None, use_4=False):

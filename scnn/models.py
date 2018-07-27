@@ -300,8 +300,8 @@ class base_model(object):
             self.op_saver.restore(sess, filename)
         return sess
 
-    def _weight_variable(self, shape, regularization=True):
-        initial = tf.truncated_normal_initializer(0, 0.1)
+    def _weight_variable(self, shape, stddev=0.1, regularization=True):
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('weights', shape, tf.float32, initializer=initial)
         if regularization:
             self.regularizers.append(tf.nn.l2_loss(var))
@@ -453,7 +453,7 @@ class cgcnn(base_model):
         L = sparse.csr_matrix(L)
         lmax = 1.02*sparse.linalg.eigsh(
                 L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax)
+        L = utils.rescale_L(L, lmax=lmax, scale=0.75)
         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
@@ -476,10 +476,15 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable([Fin*K, Fout], regularization=False)
-#         W = tf.Variable(initial_value=np.ones([Fin*K, Fout]), trainable=False, dtype=tf.float32)
+        W = self._weight_variable_cheby(K, Fin, Fout, regularization=False)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
+
+    def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
+        """Xavier like weight initializer for cheby coefficients."""
+        stddev = np.sqrt(Fin * (K+0.5)/2)
+        return self._bias_variable_fc([Fin*K, Fout], stddev=stddev, regularization=regularization)
+
 
     def monomials(self, x, L, Fout, K):
         r"""Convolution on graph with monomials."""
@@ -566,6 +571,7 @@ class cgcnn(base_model):
         return hist
 
     def batch_normalization(self, x, training, momentum=0.9):
+        """Batch norm layer."""
         # Normalize over all but the last dimension, that is the features.
         return tf.layers.batch_normalization(x,
                                              axis=-1,
@@ -578,9 +584,14 @@ class cgcnn(base_model):
     def fc(self, x, Mout):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
-        W = self._weight_variable([int(Min), Mout], regularization=True)
+        W = self._weight_variable_fc(int(Min), Mout, regularization=True)
         b = self._bias_variable([Mout], regularization=True)
         return tf.matmul(x, W) + b
+
+    def _weight_variable_fc(self, Min, Mout, regularization=True):
+        """Xavier like weight initializer for fully connected layer."""
+        stddev = np.sqrt(Min)
+        return self._bias_variable_fc([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
 

@@ -562,7 +562,7 @@ class cgcnn(base_model):
         # All are rank-4 tensors: samples, nodes, features, bins.
         widths = tf.abs(widths)
         dist = tf.abs(x - centers)
-        hist = tf.reduce_sum(tf.nn.relu(1 - dist * widths), axis=1) / bins
+        hist = tf.reduce_mean(tf.nn.relu(1 - dist * widths), axis=1) * (bins/initial_range/4)
         return hist
 
     def batch_normalization(self, x, training, momentum=0.9):

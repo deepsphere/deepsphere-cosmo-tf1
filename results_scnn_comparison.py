@@ -120,7 +120,7 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
 if __name__ == '__main__':
 
     sigma = 3
-    order = 2
+    order = 4
     sigma_noise = float(2)
 
     path = 'results/scnn/'

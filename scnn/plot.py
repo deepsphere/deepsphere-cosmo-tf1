@@ -138,17 +138,17 @@ def get_index_equator(nside, radius):
 
     return index_equator, center
 
-def plot_with_std(x, y=None, color='b', ax=None, **kwargs):
+def plot_with_std(x, y=None, color=None, alpha=0.2, ax=None, **kwargs):
     if y is None:
         y = x
         x = np.arange(y.shape[1])
-    ystd = np.std(y,axis=0)
-    ymean = np.mean(y,axis=0)
-    transparency = 0.2
+    ystd = np.std(y, axis=0)
+    ymean = np.mean(y, axis=0)
     if ax is None:
         ax = plt.gca()
-    ax.plot(x, ymean, color=color, **kwargs)
-    ax.fill_between(x, ymean - ystd, ymean + ystd, alpha=transparency, color=color)
+    lines = ax.plot(x, ymean, color=color, **kwargs)
+    color = lines[0].get_color()
+    ax.fill_between(x, ymean - ystd, ymean + ystd, alpha=alpha, color=color)
     return ax
 
 
@@ -156,12 +156,11 @@ def zoom_mollview(sig, cmin=None, cmax=None, nest=True):
     from numpy.ma import masked_array
     from matplotlib.patches import Rectangle
 
-    
     if cmin is None:
         cmin = np.min(sig)
     if cmax is None:
         cmax = np.max(sig)
-    
+
     projected = hp.mollview(sig, return_projected_map=True, nest=nest)
     plt.clf()
     nmesh = 400
@@ -172,10 +171,10 @@ def zoom_mollview(sig, cmin=None, cmax=None, nest=True):
     plt.clf()
 
     nside = hp.npix2nside(len(sig))
-    
+
     theta, phi = hp.pix2ang(nside, np.arange(hp.nside2npix(nside)))
-    
-    
+
+
     # Get position for the zoom window
     theta_min = 87.5/180*np.pi
     theta_max = 92.5/180*np.pi
@@ -200,14 +199,14 @@ def zoom_mollview(sig, cmin=None, cmax=None, nest=True):
 
     width = m0[1] - m1[1]
     height = m2[0] - m1[0]
-    
+
     test_pro = np.full(shape=(400, 1400), fill_value=-np.inf)
     test_pro_1 = np.full(shape=(400, 1400), fill_value=-np.inf)
     test_pro[:,:800] = projected
     test_pro_1[:,1000:1400] = grid.data
     tt_0 = masked_array(test_pro, test_pro<-1000)
-    tt_1 = masked_array(test_pro_1, test_pro_1<-1000)    
-    
+    tt_1 = masked_array(test_pro_1, test_pro_1<-1000)
+
     fig = plt.figure(frameon=False, figsize=(12,8))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')

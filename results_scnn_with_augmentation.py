@@ -11,7 +11,7 @@ from grid import pgrid
 
 
 def single_experiment(sigma, order, sigma_noise):
-    use_stat_layer = False
+    use_stat_layer = True
     Nside = 1024
 
     EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(

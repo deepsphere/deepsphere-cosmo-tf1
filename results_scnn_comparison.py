@@ -55,7 +55,7 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
     # Building blocks.
     params['pool'] = 'max'  # Pooling: max or average.
     params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
-
+    
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
@@ -78,7 +78,7 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
         params['regularization'] = 4e-4
 
     elif order == 1:
-        params['num_epochs'] = 290
+        params['num_epochs'] = 290 
         params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.

@@ -400,8 +400,9 @@ def compute_spherical_harmonics(nside, lmax):
             size = hp.sphtfunc.Alm.getsize(l, mmax=l)
             alm = np.zeros(size, dtype=np.complex128)
             idx = hp.sphtfunc.Alm.getidx(l, l, abs(m))
-            alm[idx] = 1 if m == 0 else 1 - 1j if m < 0 else 1 + 1j
+            alm[idx] = 1 if m == 0 else (1 - 1j)/np.sqrt(2) if m < 0 else (1 + 1j)/np.sqrt(2)
             harmonic = hp.sphtfunc.alm2map(alm, nside, l, verbose=False)
+            harmonic /= np.sqrt(np.sum(harmonic**2))
             harmonics[:, midx] = hp.reorder(harmonic, r2n=True)
             midx += 1
 

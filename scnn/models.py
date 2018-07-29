@@ -625,8 +625,9 @@ class cgcnn(base_model):
                 x = tf.nn.dropout(x, dropout)
 
         # Logits linear layer, i.e. softmax without normalization.
-        with tf.variable_scope('logits'):
-            x = self.fc(x, self.M[-1])
+        if len(self.M) != 0:
+            with tf.variable_scope('logits'):
+                x = self.fc(x, self.M[-1])
         return x
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):

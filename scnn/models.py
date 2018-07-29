@@ -128,14 +128,14 @@ class base_model(object):
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-            learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
-            learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
+            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
+            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
             if step % self.eval_frequency == 0 or step == num_steps:
                 epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                print('  learning_rate = {:.2e}, loss_average = {:.2e}'.format(learning_rate, loss_average))
+                print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
                 accuracies.append(accuracy)
                 losses.append(loss)
@@ -185,7 +185,7 @@ class base_model(object):
 
             # Model.
             op_logits = self.inference(self.ph_data, self.ph_training)
-            self.op_loss, self.op_loss_average = self.loss(op_logits, self.ph_labels, self.regularization)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
             self.op_train = self.training(self.op_loss, self.learning_rate,
                     self.decay_steps, self.decay_rate, self.momentum, self.adam)
             self.op_prediction = self.prediction(op_logits)
@@ -244,15 +244,7 @@ class base_model(object):
             tf.summary.scalar('loss/cross_entropy', cross_entropy)
             tf.summary.scalar('loss/regularization', regularization)
             tf.summary.scalar('loss/total', loss)
-            with tf.name_scope('averages'):
-                averages = tf.train.ExponentialMovingAverage(0.9)
-                op_averages = averages.apply([cross_entropy, regularization, loss])
-                tf.summary.scalar('loss/avg/cross_entropy', averages.average(cross_entropy))
-                tf.summary.scalar('loss/avg/regularization', averages.average(regularization))
-                tf.summary.scalar('loss/avg/total', averages.average(loss))
-                with tf.control_dependencies([op_averages]):
-                    loss_average = tf.identity(averages.average(loss), name='control')
-            return loss, loss_average
+            return loss
 
     def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False, beta2=0.999):
         """Adds to the loss model the Ops required to generate and apply gradients."""

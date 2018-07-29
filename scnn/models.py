@@ -129,7 +129,6 @@ class base_model(object):
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
-            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
             if step % self.eval_frequency == 0 or step == num_steps:

@@ -28,7 +28,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
     # Architecture.
     if order == 4:
-        params['num_epochs'] = 50
+        params['num_epochs'] = 100
         params['batch_size'] = 20        
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.
@@ -38,7 +38,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
 
     elif order == 2:
-        params['num_epochs'] = 150
+        params['num_epochs'] = 300
         params['batch_size'] = 15
         params['F'] = [10, 80, 320, 40,
                        10]  # Number of graph convolutional filters.
@@ -47,7 +47,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
         params['regularization'] = 4e-3
 
     elif order == 1:
-        params['num_epochs'] = 400
+        params['num_epochs'] = 800
         params['batch_size'] = 10
         params['F'] = [10, 40, 160, 40, 20,
                        10]  # Number of graph convolutional filters.

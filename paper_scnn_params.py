@@ -4,17 +4,17 @@ from scnn import utils
 
 def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
-	C = 2  # number of class
+    C = 2  # number of class
 
-	params = dict()
-	params['dir_name'] = EXP_NAME
+    params = dict()
+    params['dir_name'] = EXP_NAME
 
-	params['eval_frequency'] = 10
+    params['eval_frequency'] = 10
 
-	# Building blocks.
-	params['conv'] = 'chebyshev5'  # Convolution.
-	params['pool'] = 'max'  # Pooling: max or average.
-	params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
+    # Building blocks.
+    params['conv'] = 'chebyshev5'  # Convolution.
+    params['pool'] = 'max'  # Pooling: max or average.
+    params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
 
 
     if order == 4:
@@ -63,19 +63,19 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
 
 
-	# Architecture.
-	indexes = utils.nside2indexes(nsides, order)
-	params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
-	params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
-	# Optimization.
-	params['decay_rate'] = 0.98
-	params['dropout'] = 1 # No dropout
-	params['learning_rate'] = 1e-4
-	params['momentum'] = 0.9
-	params['adam'] = True
-	params['decay_steps'] = 153.6
-	params['statistics'] = 'mean'
-	print('#sides: {}'.format(nsides))
+    # Architecture.
+    indexes = utils.nside2indexes(nsides, order)
+    params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
+    params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
+    # Optimization.
+    params['decay_rate'] = 0.98
+    params['dropout'] = 1 # No dropout
+    params['learning_rate'] = 1e-4
+    params['momentum'] = 0.9
+    params['adam'] = True
+    params['decay_steps'] = 153.6
+    params['statistics'] = 'mean'
+    print('#sides: {}'.format(nsides))
 
-	return params
+    return params
 

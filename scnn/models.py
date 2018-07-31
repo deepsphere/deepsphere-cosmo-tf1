@@ -111,8 +111,9 @@ class base_model(object):
         sess.run(self.op_init)
 
         # Training.
-        accuracies = []
-        losses = []
+        accuracies_validation = []
+        losses_validation = []
+        losses_training = []
         indices = collections.deque()
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
         train_iter = train_dataset.iter(self.batch_size)
@@ -128,16 +129,18 @@ class base_model(object):
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-            learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
+
+            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
             if step % self.eval_frequency == 0 or step == num_steps:
                 epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                print('  learning_rate = {:.2e}, loss_average = {:.2e}'.format(learning_rate, loss_average))
+                print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                losses_training.append(loss)
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies.append(accuracy)
-                losses.append(loss)
+                accuracies_validation.append(accuracy)
+                losses_validation.append(loss)
                 print('  validation {}'.format(string))
                 print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
 
@@ -152,15 +155,12 @@ class base_model(object):
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
 
-#                 _, accuracy2, f12, loss2 = self.evaluate(train_data, train_labels, sess)
-#                 print('  Train data: accuracy {:.2e}, f1 {:.2e}, loss {:.2e}' .format(accuracy2, f12, loss2))
-
-        print('validation accuracy: peak = {:.2f}, mean = {:.2f}'.format(max(accuracies), np.mean(accuracies[-10:])))
+        print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
 
         t_step = (time.time() - t_wall) / num_steps
-        return accuracies, losses, t_step
+        return accuracies_validation, losses_validation, losses_training, t_step
 
     def get_var(self, name):
         sess = self._get_session()
@@ -184,7 +184,7 @@ class base_model(object):
 
             # Model.
             op_logits = self.inference(self.ph_data, self.ph_training)
-            self.op_loss, self.op_loss_average = self.loss(op_logits, self.ph_labels, self.regularization)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
             self.op_train = self.training(self.op_loss, self.learning_rate,
                     self.decay_steps, self.decay_rate, self.momentum, self.adam)
             self.op_prediction = self.prediction(op_logits)
@@ -243,15 +243,7 @@ class base_model(object):
             tf.summary.scalar('loss/cross_entropy', cross_entropy)
             tf.summary.scalar('loss/regularization', regularization)
             tf.summary.scalar('loss/total', loss)
-            with tf.name_scope('averages'):
-                averages = tf.train.ExponentialMovingAverage(0.9)
-                op_averages = averages.apply([cross_entropy, regularization, loss])
-                tf.summary.scalar('loss/avg/cross_entropy', averages.average(cross_entropy))
-                tf.summary.scalar('loss/avg/regularization', averages.average(regularization))
-                tf.summary.scalar('loss/avg/total', averages.average(loss))
-                with tf.control_dependencies([op_averages]):
-                    loss_average = tf.identity(averages.average(loss), name='control')
-            return loss, loss_average
+            return loss
 
     def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False, beta2=0.999):
         """Adds to the loss model the Ops required to generate and apply gradients."""

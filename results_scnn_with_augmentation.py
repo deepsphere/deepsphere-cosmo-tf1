@@ -51,8 +51,6 @@ def single_experiment(sigma, order, sigma_noise):
     params = dict()
     params['dir_name'] = EXP_NAME
 
-    params['eval_frequency'] = 10
-
     # Building blocks.
     params['conv'] = 'chebyshev5'  # Convolution.
     params['pool'] = 'max'  # Pooling: max or average.
@@ -64,34 +62,28 @@ def single_experiment(sigma, order, sigma_noise):
     # Architecture.
     params['nsides'] = nsides  # Sizes of the laplacians are 12 * nsides**2.
     params['indexes'] = indexes  # Sizes of the laplacians are 12 * nsides**2.
+
     if order == 4:
-        params['num_epochs'] = 50
+        params['num_epochs'] = 80
         params['batch_size'] = 20
-        params['F'] = [40, 160, 320,
-                       20]  # Number of graph convolutional filters.
-        params['K'] = [10, 10, 10, 10]  # Polynomial orders.
-        params['batch_norm'] = [True, True, True, True]  # Batch norm
+        params['F'] = [40, 160, 320, 20]  # Number of feature maps.
+        params['K'] = [10] * 4  # Polynomial orders.
+        params['batch_norm'] = [True] * 4  # Batch normalization.
         params['regularization'] = 2e-4
-
     elif order == 2:
-        params['num_epochs'] = 150
+        params['num_epochs'] = 250
         params['batch_size'] = 15
-        params['F'] = [10, 80, 320, 40,
-                       10]  # Number of graph convolutional filters.
-        params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
-        params['batch_norm'] = [True, True, True, True, True]  # Batch norm
+        params['F'] = [10, 80, 320, 40, 10]  # Number of feature maps.
+        params['K'] = [10] * 5  # Polynomial orders.
+        params['batch_norm'] = [True] * 5  # Batch normalization.
         params['regularization'] = 4e-4
-
     elif order == 1:
-        params['num_epochs'] = 290
+        params['num_epochs'] = 700
         params['batch_size'] = 10
-        params['F'] = [10, 40, 160, 40, 20,
-                       10]  # Number of graph convolutional filters.
-        params['K'] = [10, 10, 10, 10, 10, 10]  # Polynomial orders.
-        params['batch_norm'] = [True, True, True, True, True,
-                                True]  # Batch norm
+        params['F'] = [10, 40, 160, 40, 20, 10]  # Number of feature maps.
+        params['K'] = [10] * 6  # Polynomial orders.
+        params['batch_norm'] = [True] * 6  # Batch normalization.
         params['regularization'] = 4e-4
-
     else:
         raise ValueError('No parameter for this value of order.')
 
@@ -105,6 +97,10 @@ def single_experiment(sigma, order, sigma_noise):
     params['adam'] = True
     params['decay_steps'] = 153.6
     params['use_4'] = False
+
+    # Number of model evaluations during training.
+    n_evaluations = 200
+    params['eval_frequency'] = int(params['num_epochs'] * training.N / params['batch_size'] / n_evaluations)
 
     model = models.scnn(**params)
 

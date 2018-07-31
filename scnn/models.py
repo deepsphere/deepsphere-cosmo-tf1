@@ -307,8 +307,9 @@ class base_model(object):
         tf.summary.histogram(var.op.name, var)
         return var
 
-    def _bias_variable(self, shape, regularization=True):
-        initial = tf.constant_initializer(0.1)
+    def _bias_variable(self, shape, stddev=1, regularization=False):
+        # initial = tf.constant_initializer(0.1)
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
             self.regularizers.append(tf.nn.l2_loss(var))
@@ -520,7 +521,7 @@ class cgcnn(base_model):
     def bias(self, x):
         """Add one bias per filter."""
         N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=True)
+        b = self._bias_variable([1, 1, int(F)], regularization=False)
         return x + b
 
     def pool_max(self, x, p):
@@ -584,7 +585,7 @@ class cgcnn(base_model):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
         W = self._weight_variable_fc(int(Min), Mout, regularization=True)
-        b = self._bias_variable([Mout], regularization=True)
+        b = self._bias_variable([Mout], regularization=False)
         return tf.matmul(x, W) + b
 
     def _weight_variable_fc(self, Min, Mout, regularization=True):

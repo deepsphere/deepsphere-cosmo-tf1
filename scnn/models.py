@@ -138,18 +138,20 @@ class base_model(object):
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                 print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
                 losses_training.append(loss)
-                string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies_validation.append(accuracy)
-                losses_validation.append(loss)
-                print('  validation {}'.format(string))
-                print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
                 summary.ParseFromString(sess.run(self.op_summary, feed_dict))
-                summary.value.add(tag='validation/accuracy', simple_value=accuracy)
-                summary.value.add(tag='validation/f1', simple_value=f1)
-                summary.value.add(tag='validation/loss', simple_value=loss)
+                if step % (10*self.eval_frequency) == 0:
+                    string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                    accuracies_validation.append(accuracy)
+                    losses_validation.append(loss)
+                    print('  validation {}'.format(string))
+                    print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+                    summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                    summary.value.add(tag='validation/f1', simple_value=f1)
+                    summary.value.add(tag='validation/loss', simple_value=loss)
                 writer.add_summary(summary, step)
 
                 # Save model parameters (for evaluation).

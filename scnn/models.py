@@ -129,6 +129,7 @@ class base_model(object):
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
+
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
@@ -137,18 +138,20 @@ class base_model(object):
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                 print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
                 losses_training.append(loss)
-                string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies_validation.append(accuracy)
-                losses_validation.append(loss)
-                print('  validation {}'.format(string))
-                print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
                 summary.ParseFromString(sess.run(self.op_summary, feed_dict))
-                summary.value.add(tag='validation/accuracy', simple_value=accuracy)
-                summary.value.add(tag='validation/f1', simple_value=f1)
-                summary.value.add(tag='validation/loss', simple_value=loss)
+                if step % (10*self.eval_frequency) == 0:
+                    string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                    accuracies_validation.append(accuracy)
+                    losses_validation.append(loss)
+                    print('  validation {}'.format(string))
+                    print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+                    summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                    summary.value.add(tag='validation/f1', simple_value=f1)
+                    summary.value.add(tag='validation/loss', simple_value=loss)
                 writer.add_summary(summary, step)
 
                 # Save model parameters (for evaluation).
@@ -290,16 +293,17 @@ class base_model(object):
             self.op_saver.restore(sess, filename)
         return sess
 
-    def _weight_variable(self, shape, regularization=True):
-        initial = tf.truncated_normal_initializer(0, 0.1)
+    def _weight_variable(self, shape, stddev=0.1, regularization=True):
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('weights', shape, tf.float32, initializer=initial)
         if regularization:
             self.regularizers.append(tf.nn.l2_loss(var))
         tf.summary.histogram(var.op.name, var)
         return var
 
-    def _bias_variable(self, shape, regularization=True):
-        initial = tf.constant_initializer(0.1)
+    def _bias_variable(self, shape, stddev=1, regularization=False):
+        # initial = tf.constant_initializer(0.1)
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
             self.regularizers.append(tf.nn.l2_loss(var))
@@ -443,7 +447,7 @@ class cgcnn(base_model):
         L = sparse.csr_matrix(L)
         lmax = 1.02*sparse.linalg.eigsh(
                 L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax)
+        L = utils.rescale_L(L, lmax=lmax, scale=0.75)
         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
@@ -466,10 +470,15 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable([Fin*K, Fout], regularization=False)
-#         W = tf.Variable(initial_value=np.ones([Fin*K, Fout]), trainable=False, dtype=tf.float32)
+        W = self._weight_variable_cheby(K, Fin, Fout, regularization=False)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
+
+    def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
+        """Xavier like weight initializer for cheby coefficients."""
+        stddev = 1/np.sqrt(Fin * (K+0.5)/2)
+        return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
+
 
     def monomials(self, x, L, Fout, K):
         r"""Convolution on graph with monomials."""
@@ -506,7 +515,7 @@ class cgcnn(base_model):
     def bias(self, x):
         """Add one bias per filter."""
         N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=True)
+        b = self._bias_variable([1, 1, int(F)], regularization=False)
         return x + b
 
     def pool_max(self, x, p):
@@ -556,6 +565,7 @@ class cgcnn(base_model):
         return hist
 
     def batch_normalization(self, x, training, momentum=0.9):
+        """Batch norm layer."""
         # Normalize over all but the last dimension, that is the features.
         return tf.layers.batch_normalization(x,
                                              axis=-1,
@@ -568,9 +578,14 @@ class cgcnn(base_model):
     def fc(self, x, Mout):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
-        W = self._weight_variable([int(Min), Mout], regularization=True)
-        b = self._bias_variable([Mout], regularization=True)
+        W = self._weight_variable_fc(int(Min), Mout, regularization=True)
+        b = self._bias_variable([Mout], regularization=False)
         return tf.matmul(x, W) + b
+
+    def _weight_variable_fc(self, Min, Mout, regularization=True):
+        """Xavier like weight initializer for fully connected layer."""
+        stddev = 1/np.sqrt(Min)
+        return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
 

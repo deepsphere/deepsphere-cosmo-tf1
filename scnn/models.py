@@ -111,8 +111,9 @@ class base_model(object):
         sess.run(self.op_init)
 
         # Training.
-        accuracies = []
-        losses = []
+        accuracies_validation = []
+        losses_validation = []
+        losses_training = []
         indices = collections.deque()
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
         train_iter = train_dataset.iter(self.batch_size)
@@ -135,9 +136,10 @@ class base_model(object):
                 epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                 print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                losses_training.append(loss)
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies.append(accuracy)
-                losses.append(loss)
+                accuracies_validation.append(accuracy)
+                losses_validation.append(loss)
                 print('  validation {}'.format(string))
                 print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
 
@@ -152,15 +154,12 @@ class base_model(object):
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
 
-#                 _, accuracy2, f12, loss2 = self.evaluate(train_data, train_labels, sess)
-#                 print('  Train data: accuracy {:.2e}, f1 {:.2e}, loss {:.2e}' .format(accuracy2, f12, loss2))
-
-        print('validation accuracy: peak = {:.2f}, mean = {:.2f}'.format(max(accuracies), np.mean(accuracies[-10:])))
+        print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
 
         t_step = (time.time() - t_wall) / num_steps
-        return accuracies, losses, t_step
+        return accuracies_validation, losses_validation, losses_training, t_step
 
     def get_var(self, name):
         sess = self._get_session()

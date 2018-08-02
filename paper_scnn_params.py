@@ -15,11 +15,11 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
     params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
 
     if order == 4:
-        nsides = [Nside, Nside // 2, Nside // 4, min(Nside // 8, 128)]
+        nsides = [Nside, Nside // 2, Nside // 4, min(Nside // 8, 128), min(Nside // 8, 128)]
     elif order == 2:
-        nsides = [Nside, Nside // 2, Nside // 4, Nside // 8,min(Nside // 16, 128)]
+        nsides = [Nside, Nside // 2, Nside // 4, Nside // 8, min(Nside // 16, 128), min(Nside // 16, 128)]
     elif order == 1:
-        nsides = [ Nside, Nside // 2, Nside // 4, Nside // 8, Nside // 16, min(Nside // 32, 64) ]
+        nsides = [ Nside, Nside // 2, Nside // 4, Nside // 8, Nside // 16, min(Nside // 32, 64), min(Nside // 32, 64)]
     else:
         raise ValueError('No parameters for order = {}.'.format(order))
 

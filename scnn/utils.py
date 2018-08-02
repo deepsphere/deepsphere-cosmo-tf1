@@ -181,22 +181,18 @@ def rescale_L(L, lmax=2, scale=1):
 
 
 def build_laplacians(nsides, indexes=None, use_4=False):
-    """Build a list of Laplacian form nsides."""
+    """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
-    first = True
     if indexes is None:
         indexes = [None] * len(nsides)
-    for nside, ind in zip(nsides, indexes):
-        if not first:
-            pval = (nside_old // nside)**2
-            p.append(pval)
-        nside_old = nside
-        first = False
-        Lt = healpix_laplacian(nside=nside, indexes=ind, use_4=use_4)
-        L.append(Lt)
-    if len(L):
-        p.append(1)
+    for i, (nside, index) in enumerate(zip(nsides, indexes)):
+        if i > 0:  # First is input dimension.
+            p.append((nside_last // nside)**2)
+        nside_last = nside
+        if i < len(nsides) - 1:  # Last does not need a Laplacian.
+            laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4)
+            L.append(laplacian)
     return L, p
 
 

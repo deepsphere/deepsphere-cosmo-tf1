@@ -238,7 +238,7 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers)/len(self.regularizers)
+                regularization *= tf.add_n(self.regularizers) / len(self.regularizers)
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
@@ -470,15 +470,14 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable_cheby(K, Fin, Fout, regularization=False)
+        W = self._weight_variable_cheby(K, Fin, Fout, regularization=True)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
     def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
         """Xavier like weight initializer for cheby coefficients."""
-        stddev = 1/np.sqrt(Fin * (K+0.5)/2)
+        stddev = 1 / np.sqrt(Fin * (K + 0.5) / 2)
         return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
-
 
     def monomials(self, x, L, Fout, K):
         r"""Convolution on graph with monomials."""
@@ -508,7 +507,7 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable([Fin*K, Fout], regularization=False)
+        W = self._weight_variable([Fin*K, Fout], regularization=True)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
@@ -584,7 +583,7 @@ class cgcnn(base_model):
 
     def _weight_variable_fc(self, Min, Mout, regularization=True):
         """Xavier like weight initializer for fully connected layer."""
-        stddev = 1/np.sqrt(Min)
+        stddev = 1 / np.sqrt(Min)
         return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):

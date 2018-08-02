@@ -97,7 +97,7 @@ class LabeledDatasetWithNoise(LabeledDataset):
         self._sl = start_level
         self._el = end_level
         if noise_func is None:
-            noise_func = GaussianNoise(fix=True, loc=0.0, scale=1.)
+            noise_func = GaussianNoise(seed=1, loc=0.0, scale=1.)
         self._noise_func = noise_func
         self._curr_it = None
         super().__init__(X=X, label=label, shuffle=shuffle, transform=self._add_noise)
@@ -123,14 +123,14 @@ class LabeledDatasetWithNoise(LabeledDataset):
 
 
 class GaussianNoise(object):
-    def __init__(self, fix=True, loc=0.0, scale=1.):
+    def __init__(self, seed=None, loc=0.0, scale=1.):
         """Initialize the Gaussian noise generator."""
         self.loc = loc
         self.scale = scale
         self.ncall = 0
-        self.fix = fix
-        if self.fix:
-            self.rs = np.random.RandomState(1)
+        self.seed = seed
+        if self.seed
+            self.rs = np.random.RandomState(self.seed)
             self.noise_func = lambda size: self.scale*self.rs.randn(*size)+self.loc
         else:
             self.noise_func = lambda size: np.random.randn(size, self.loc, self.scale)

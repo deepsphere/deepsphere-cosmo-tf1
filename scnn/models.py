@@ -39,6 +39,7 @@ class base_model(object):
 
     def __init__(self):
         self.regularizers = []
+        self.regularizers_size = []
 
     # High-level interface which runs the constructed computational graph.
 
@@ -236,7 +237,8 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers) / len(self.regularizers)
+                n_weights = np.sum(self.regularizers_size)
+                regularization *= tf.add_n(self.regularizers) / n_weights
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
@@ -295,7 +297,8 @@ class base_model(object):
         initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('weights', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
@@ -304,7 +307,8 @@ class base_model(object):
         initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
@@ -372,6 +376,9 @@ class cgcnn(base_model):
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
         if not np.all(np.mod(p_log2, 1) == 0):
             raise ValueError('Down-sampling factors p should be powers of two.')
+        if len(M) == 0 and p[-1] != 1:
+            raise ValueError('Down-sampling should not be used in the last '
+                             'layer if no fully connected layer follows.')
 
         # Keep the useful Laplacians only. May be zero.
         M_0 = L[0].shape[0]
@@ -391,7 +398,8 @@ class cgcnn(base_model):
             F_last = F[i-1] if i > 0 else 1
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
-            print('    biases: F_{} = {}'.format(i+1, F[i]))
+            if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
+                print('    biases: F_{} = {}'.format(i+1, F[i]))
 
         if Ngconv:
             M_last = L[-1].shape[0] * F[-1] // p[-1]
@@ -420,7 +428,8 @@ class cgcnn(base_model):
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
-            print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            if i < Nfc - 1:  # No bias if it's a softmax.
+                print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
             M_last = M[i]
 
         # Store attributes and bind operations.
@@ -477,7 +486,7 @@ class cgcnn(base_model):
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
     def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
-        """Xavier like weight initializer for cheby coefficients."""
+        """Xavier like weight initializer for Chebychev coefficients."""
         stddev = 1 / np.sqrt(Fin * (K + 0.5) / 2)
         return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
 
@@ -576,12 +585,14 @@ class cgcnn(base_model):
                                              scale=False,  # Done by filters.
                                              training=training)
 
-    def fc(self, x, Mout):
+    def fc(self, x, Mout, bias=True):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
         W = self._weight_variable_fc(int(Min), Mout, regularization=True)
-        b = self._bias_variable([Mout], regularization=False)
-        return tf.matmul(x, W) + b
+        y = tf.matmul(x, W)
+        if bias:
+            y += self._bias_variable([Mout], regularization=False)
+        return y
 
     def _weight_variable_fc(self, Min, Mout, regularization=True):
         """Xavier like weight initializer for fully connected layer."""
@@ -596,7 +607,9 @@ class cgcnn(base_model):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
-                if self.batch_norm[i]:
+                if i == len(self.p)-1 and len(self.M) == 0:
+                    break  # That is a linear layer before the softmax.
+                if self.batch_norm:
                     x = self.batch_normalization(x, training)
                 x = self.bias(x)
                 x = self.activation(x)
@@ -633,7 +646,8 @@ class cgcnn(base_model):
         # Logits linear layer, i.e. softmax without normalization.
         if len(self.M) != 0:
             with tf.variable_scope('logits'):
-                x = self.fc(x, self.M[-1])
+                x = self.fc(x, self.M[-1], bias=False)
+
         return x
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):

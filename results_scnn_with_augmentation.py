@@ -24,7 +24,7 @@ def single_experiment(sigma, order, sigma_noise):
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
     features_train, labels_train, features_validation, labels_validation, features_test = ret
 
-    training = LabeledDatasetWithNoise(features_train, labels_train, start_level=sigma_noise, end_level=sigma_noise)
+    training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
     ntrain = len(features_train)
 

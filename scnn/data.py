@@ -78,19 +78,19 @@ class LabeledDataset(object):
 
 class LabeledDatasetWithNoise(LabeledDataset):
 
-    def __init__(self, X, label, shuffle=True, start_level=1, end_level=1,
-                 nit=1000, noise_func=None):
+    def __init__(self, X, label, shuffle=True, start_level=0, end_level=1,
+                 nit=0, noise_func=None):
         '''Initialize a Dataset object with noise.
 
         Arguments
         ---------
-        * X         : numpy array containing the data
-        * shuffle   : True if the data should be shuffled
-        * start_level: Starting level of noise (default 1)
-        * end_level : Final level of noise (default 1)
-        * nit       : Number of iterations between the start level and the
-                      final level (linear interpolation)
-        * noise_func: Noise function (default numpy.random.normal)
+        * X          : numpy array containing the data
+        * shuffle    : True if the data should be shuffled
+        * start_level: Starting level of noise (default 0)
+        * end_level  : Final level of noise (default 1)
+        * nit        : Number of iterations between the start level and the
+                       final level (linear interpolation) (default 0)
+        * noise_func : Noise function (default numpy.random.normal)
 
         '''
         self._nit = nit

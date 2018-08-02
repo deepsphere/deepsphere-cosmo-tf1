@@ -364,10 +364,14 @@ class cgcnn(base_model):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
-        assert len(L) == len(F) == len(K) == len(p)
-        assert np.all(np.array(p) >= 1)
+        if not len(L) == len(F) == len(K) == len(p):
+            raise ValueError('Wrong specification of the convolutional layers: '
+                             'parameters L, F, K, p must have the same length.')
+        if not np.all(np.array(p) >= 1):
+            raise ValueError('Down-sampling factors p should be greater or equal to one.')
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
-        assert np.all(np.mod(p_log2, 1) == 0)  # Powers of 2.
+        if not np.all(np.mod(p_log2, 1) == 0):
+            raise ValueError('Down-sampling factors p should be powers of two.')
 
         # Keep the useful Laplacians only. May be zero.
         M_0 = L[0].shape[0]

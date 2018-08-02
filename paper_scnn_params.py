@@ -21,7 +21,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
     elif order == 1:
         nsides = [ Nside, Nside // 2, Nside // 4, Nside // 8, Nside // 16, min(Nside // 32, 64) ]
     else:
-        raise ValueError('No parameters for this value of order.')
+        raise ValueError('No parameters for order = {}.'.format(order))
 
     # Architecture.
     if order == 4:

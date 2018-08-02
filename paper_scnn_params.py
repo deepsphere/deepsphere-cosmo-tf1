@@ -29,7 +29,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
     # Architecture.
     if order == 4:
-        params['num_epochs'] = 100
+        params['num_epochs'] = 50
         params['batch_size'] = 20        
         params['F'] = [40, 160, 320,
                        20]  # Number of graph convolutional filters.

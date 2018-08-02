@@ -39,6 +39,7 @@ class base_model(object):
 
     def __init__(self):
         self.regularizers = []
+        self.regularizers_size = []
 
     # High-level interface which runs the constructed computational graph.
 
@@ -236,7 +237,8 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers) / len(self.regularizers)
+                n_weights = np.sum(self.regularizers_size)
+                regularization *= tf.add_n(self.regularizers) / n_weights
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
@@ -295,7 +297,8 @@ class base_model(object):
         initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('weights', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
@@ -304,7 +307,8 @@ class base_model(object):
         initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
@@ -482,7 +486,7 @@ class cgcnn(base_model):
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
     def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
-        """Xavier like weight initializer for cheby coefficients."""
+        """Xavier like weight initializer for Chebychev coefficients."""
         stddev = 1 / np.sqrt(Fin * (K + 0.5) / 2)
         return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
 

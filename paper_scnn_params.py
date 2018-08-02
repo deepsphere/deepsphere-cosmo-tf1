@@ -9,14 +9,10 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
     params = dict()
     params['dir_name'] = EXP_NAME
 
-    params['eval_frequency'] = 10
-    # The evaluation set is evaluated only a tens of this number. Maybe we should have two different paramters.
-
     # Building blocks.
     params['conv'] = 'chebyshev5'  # Convolution.
     params['pool'] = 'max'  # Pooling: max or average.
     params['activation'] = 'relu'  # Non-linearity: relu, elu, leaky_relu, etc.
-
 
     if order == 4:
         nsides = [Nside, Nside // 2, Nside // 4, min(Nside // 8, 128)]
@@ -36,7 +32,6 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
         params['regularization'] = 4e-2
-
 
     elif order == 2:
         params['num_epochs'] = 300
@@ -62,7 +57,9 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
 
     params['M'] = [C]  # Output dimensionality of fully connected layers.
 
-
+    # Number of model evaluations during training.
+    n_evaluations = 200
+    params['eval_frequency'] = int(params['num_epochs'] * training.N / params['batch_size'] / n_evaluations)
 
     # Architecture.
     indexes = utils.nside2indexes(nsides, order)
@@ -79,4 +76,3 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
     print('#sides: {}'.format(nsides))
 
     return params
-

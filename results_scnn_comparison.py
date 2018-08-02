@@ -35,7 +35,7 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
     shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
     shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
 
-    accuracy, loss, t_step = model.fit(training, validation)
+    model.fit(training, validation)
 
     error_validation = experiment_helper.model_error(model, features_validation, labels_validation)
     print('The validation error is {}%'.format(error_validation * 100), flush=True)

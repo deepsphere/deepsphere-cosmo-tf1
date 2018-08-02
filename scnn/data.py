@@ -78,26 +78,26 @@ class LabeledDataset(object):
 
 class LabeledDatasetWithNoise(LabeledDataset):
 
-    def __init__(self, X, label, shuffle=True, start_level=1, end_level=1,
-                 nit=1000, noise_func=None):
+    def __init__(self, X, label, shuffle=True, start_level=0, end_level=1,
+                 nit=0, noise_func=None):
         '''Initialize a Dataset object with noise.
 
         Arguments
         ---------
-        * X         : numpy array containing the data
-        * shuffle   : True if the data should be shuffled
-        * start_level: Starting level of noise (default 1)
-        * end_level : Final level of noise (default 1)
-        * nit       : Number of iterations between the start level and the
-                      final level (linear interpolation)
-        * noise_func: Noise function (default numpy.random.normal)
+        * X          : numpy array containing the data
+        * shuffle    : True if the data should be shuffled
+        * start_level: Starting level of noise (default 0)
+        * end_level  : Final level of noise (default 1)
+        * nit        : Number of iterations between the start level and the
+                       final level (linear interpolation) (default 0)
+        * noise_func : Noise function (default numpy.random.normal)
 
         '''
         self._nit = nit
         self._sl = start_level
         self._el = end_level
         if noise_func is None:
-            noise_func = GaussianNoise(seed=1, loc=0.0, scale=1.)
+            noise_func = GaussianNoise(loc=0, scale=1, seed=1)
         self._noise_func = noise_func
         self._curr_it = None
         super().__init__(X=X, label=label, shuffle=shuffle, transform=self._add_noise)
@@ -121,41 +121,21 @@ class LabeledDatasetWithNoise(LabeledDataset):
             curr_it += 1
             yield self._add_noise(np.array(data), level), np.array(label)
 class GaussianNoise(object):
-    def __init__(self, seed=None, loc=0.0, scale=1., all_level=True):
+    def __init__(self, loc=0.0, scale=1., seed=None, all_level=True):
         """Initialize the Gaussian noise generator."""
         self.loc = loc
         self.scale = scale
-        self.ncall = 0
         self.seed = seed
         self.all_level = all_level
-        if self.seed:
-            self.rs = np.random.RandomState(self.seed)
-            self.noise_func = self.random_with_seed
-        else:
-            self.noise_func = self.random
+        self.rs = np.random.RandomState(self.seed)
     def __call__(self, size):
         """Return gaussian random noise of shape size."""
-        return self.noise_func(size)
-
-    def random_with_seed(self, size):
-        """Noise function with seed."""
         noise = self.scale*self.rs.randn(*size)+self.loc
         if self.all_level:
             if self.rs.randn()>0:
                 return noise
             else:
                 return self.rs.rand()*noise
-        else:
-            return noise
-
-    def random(self, size):
-        """Noise function without seed."""
-        noise = np.random.randn(size, self.loc, self.scale)
-        if self.all_level:
-            if np.random.randn()>0:
-                return noise
-            else:
-                return np.random.rand()*noise
         else:
             return noise
 

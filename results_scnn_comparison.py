@@ -8,6 +8,8 @@ import numpy as np
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import egrid
+from paper_scnn_params import get_params
+
 
 def single_experiment(sigma, order, sigma_noise, name, **kwargs):
 
@@ -22,13 +24,12 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
     features_train, labels_train, features_validation, labels_validation, features_test = ret
 
-    training = LabeledDatasetWithNoise(features_train, labels_train, start_level=sigma_noise, end_level=sigma_noise )
+    training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
     ntrain = len(features_train)
 
     params = get_params(ntrain, EXP_NAME, order)
-    for key, value in kwargs.items():
-        params[key] = value
+    params.update(kwargs)
     model = models.scnn(**params)
 
     # Cleanup before running again.

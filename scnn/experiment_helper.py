@@ -242,7 +242,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         features_test = (features_test - features_train_mean) / features_train_std      
         features_validation = (features_validation - features_train_mean) / features_train_std
     else:
-        if not(augmentation==1):
+        if augmentation != 1:
             raise ValueError('The raw data should be augmented using the LabeledDatasetWithNoise object.')
         features_train = x_raw_train
         labels_train = labels_train

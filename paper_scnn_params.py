@@ -10,6 +10,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
     params['dir_name'] = EXP_NAME
 
     params['eval_frequency'] = 10
+    # The evaluation set is evaluated only a tens of this number. Maybe we should have two different paramters.
 
     # Building blocks.
     params['conv'] = 'chebyshev5'  # Convolution.
@@ -34,7 +35,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
                        20]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True]  # Batch norm
-        params['regularization'] = 4e-3
+        params['regularization'] = 4e-2
 
 
     elif order == 2:
@@ -44,7 +45,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
                        10]  # Number of graph convolutional filters.
         params['K'] = [10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True]  # Batch norm
-        params['regularization'] = 8e-3
+        params['regularization'] = 8e-2
 
     elif order == 1:
         params['num_epochs'] = 800
@@ -54,7 +55,7 @@ def get_params(ntrain, EXP_NAME, order, Nside=1024):
         params['K'] = [10, 10, 10, 10, 10, 10]  # Polynomial orders.
         params['batch_norm'] = [True, True, True, True, True,
                                 True]  # Batch norm
-        params['regularization'] = 8e-3
+        params['regularization'] = 8e-2
 
     else:
         raise ValueError('No parameter for this value of order.')

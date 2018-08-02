@@ -129,15 +129,15 @@ class GaussianNoise(object):
         self.scale = scale
         self.ncall = 0
         self.fix = fix
-
+        if self.fix:
+            self.rs = np.random.RandomState(1)
+            self.noise_func = lambda size: self.scale*self.rs.randn(*size)+self.loc
+        else:
+            self.noise_func = lambda size: np.random.randn(size, self.loc, self.scale)
     def __call__(self, size):
         """Return gaussian random noise of shape size."""
-        self.ncall +=1
-        if self.fix:
-            rs = np.random.RandomState(self.ncall)
-            return self.scale*rs.randn(*size)+self.loc
-        else:
-            return np.random.randn(size, self.loc, self.scale)
+        return self.noise_func(size)
+
 
 
 def grouper(iterable, n, fillvalue=None):

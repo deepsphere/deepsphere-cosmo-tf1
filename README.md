@@ -9,13 +9,6 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 [gcnn_paper]: https://arxiv.org/abs/1606.09375
 [gcnn_code]: https://github.com/mdeff/cnn_graph/
 
-## TODO
-Here is the todo list for the code.
-* Put the data on Zenodo.
-* Make the script `download.py`
-* Checks all the notebooks, README
-
-
 ## Installation
 
 1. Clone this repository.

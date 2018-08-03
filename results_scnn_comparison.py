@@ -53,12 +53,14 @@ if __name__ == '__main__':
     order = 4
     sigma_noise = float(2)
 
-    path = 'results/scnn/'
     experiments = egrid()
     if len(sys.argv) > 1:
         numel = int(sys.argv[1])
         experiments = experiments[numel:numel+1]
+
+    path = 'results/scnn/'
     os.makedirs(path, exist_ok=True)
+
     for experiment in experiments:
         name = experiment.name
         kwargs = experiment.kwargs

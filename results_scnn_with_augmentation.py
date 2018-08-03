@@ -55,12 +55,12 @@ if __name__ == '__main__':
         grid = [(sigma, order, sigma_noise)]
     else:
         grid = pgrid()
-    path = 'results/scnn/'
 
+    path = 'results/scnn/'
     os.makedirs(path, exist_ok=True)
-    for p in grid:
-        sigma, order, sigma_noise = p
-        print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+
+    for sigma, order, sigma_noise in grid:
+        print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise)
         filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
         new_data = [order, sigma_noise, res]

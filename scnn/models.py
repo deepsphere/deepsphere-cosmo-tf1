@@ -90,7 +90,7 @@ class base_model(object):
         labels: size N
             N: number of signals (samples)
         """
-        t_process, t_wall = process_time(), time.time()
+        t_cpu, t_wall = process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
@@ -98,11 +98,11 @@ class base_model(object):
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
-            string += '\ntime: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall)
+            string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
     def fit(self, train_dataset, val_dataset):
-        t_process, t_wall = process_time(), time.time()
+        t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
@@ -143,7 +143,7 @@ class base_model(object):
                 accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 print('  validation {}'.format(string))
-                print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+                print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()

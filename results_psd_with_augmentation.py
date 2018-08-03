@@ -67,12 +67,12 @@ if __name__ == '__main__':
         grid = [(sigma, order, sigma_noise)]
     else:
         grid = pgrid()
-    path = 'results/psd/'
 
+    path = 'results/psd/'
     os.makedirs(path, exist_ok=True)
-    for p in grid:
-        sigma, order, sigma_noise = p
-        print('Launch experiment for {}, {}, {}'.format(sigma, order, sigma_noise))
+
+    for sigma, order, sigma_noise in grid:
+        print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise, path)
         filepath = os.path.join(path, 'psd_results_list_sigma{}'.format(sigma))
         new_data = [order, sigma_noise, res]

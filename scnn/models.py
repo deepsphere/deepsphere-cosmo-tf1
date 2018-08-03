@@ -39,6 +39,7 @@ class base_model(object):
 
     def __init__(self):
         self.regularizers = []
+        self.regularizers_size = []
 
     # High-level interface which runs the constructed computational graph.
 
@@ -111,8 +112,9 @@ class base_model(object):
         sess.run(self.op_init)
 
         # Training.
-        accuracies = []
-        losses = []
+        accuracies_validation = []
+        losses_validation = []
+        losses_training = []
         indices = collections.deque()
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
         train_iter = train_dataset.iter(self.batch_size)
@@ -128,17 +130,18 @@ class base_model(object):
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()  # convert sparse matrices
             feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-            learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
-            learning_rate, loss_average = sess.run([self.op_train, self.op_loss_average], feed_dict)
+
+            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
             if step % self.eval_frequency == 0 or step == num_steps:
                 epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                print('  learning_rate = {:.2e}, loss_average = {:.2e}'.format(learning_rate, loss_average))
+                print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                losses_training.append(loss)
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies.append(accuracy)
-                losses.append(loss)
+                accuracies_validation.append(accuracy)
+                losses_validation.append(loss)
                 print('  validation {}'.format(string))
                 print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
 
@@ -153,15 +156,12 @@ class base_model(object):
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
 
-#                 _, accuracy2, f12, loss2 = self.evaluate(train_data, train_labels, sess)
-#                 print('  Train data: accuracy {:.2e}, f1 {:.2e}, loss {:.2e}' .format(accuracy2, f12, loss2))
-
-        print('validation accuracy: peak = {:.2f}, mean = {:.2f}'.format(max(accuracies), np.mean(accuracies[-10:])))
+        print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
 
         t_step = (time.time() - t_wall) / num_steps
-        return accuracies, losses, t_step
+        return accuracies_validation, losses_validation, losses_training, t_step
 
     def get_var(self, name):
         sess = self._get_session()
@@ -185,7 +185,7 @@ class base_model(object):
 
             # Model.
             op_logits = self.inference(self.ph_data, self.ph_training)
-            self.op_loss, self.op_loss_average = self.loss(op_logits, self.ph_labels, self.regularization)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
             self.op_train = self.training(self.op_loss, self.learning_rate,
                     self.decay_steps, self.decay_rate, self.momentum, self.adam)
             self.op_prediction = self.prediction(op_logits)
@@ -237,22 +237,15 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                regularization *= tf.add_n(self.regularizers)/len(self.regularizers)
+                n_weights = np.sum(self.regularizers_size)
+                regularization *= tf.add_n(self.regularizers) / n_weights
             loss = cross_entropy + regularization
 
             # Summaries for TensorBoard.
             tf.summary.scalar('loss/cross_entropy', cross_entropy)
             tf.summary.scalar('loss/regularization', regularization)
             tf.summary.scalar('loss/total', loss)
-            with tf.name_scope('averages'):
-                averages = tf.train.ExponentialMovingAverage(0.9)
-                op_averages = averages.apply([cross_entropy, regularization, loss])
-                tf.summary.scalar('loss/avg/cross_entropy', averages.average(cross_entropy))
-                tf.summary.scalar('loss/avg/regularization', averages.average(regularization))
-                tf.summary.scalar('loss/avg/total', averages.average(loss))
-                with tf.control_dependencies([op_averages]):
-                    loss_average = tf.identity(averages.average(loss), name='control')
-            return loss, loss_average
+            return loss
 
     def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False, beta2=0.999):
         """Adds to the loss model the Ops required to generate and apply gradients."""
@@ -300,19 +293,22 @@ class base_model(object):
             self.op_saver.restore(sess, filename)
         return sess
 
-    def _weight_variable(self, shape, regularization=True):
-        initial = tf.truncated_normal_initializer(0, 0.1)
+    def _weight_variable(self, shape, stddev=0.1, regularization=True):
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('weights', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
-    def _bias_variable(self, shape, regularization=True):
-        initial = tf.constant_initializer(0.1)
+    def _bias_variable(self, shape, stddev=1, regularization=False):
+        # initial = tf.constant_initializer(0.1)
+        initial = tf.truncated_normal_initializer(0, stddev=stddev)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var))
+            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var
 
@@ -372,10 +368,17 @@ class cgcnn(base_model):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
-        assert len(L) == len(F) == len(K) == len(p)
-        assert np.all(np.array(p) >= 1)
+        if not len(L) == len(F) == len(K) == len(p):
+            raise ValueError('Wrong specification of the convolutional layers: '
+                             'parameters L, F, K, p must have the same length.')
+        if not np.all(np.array(p) >= 1):
+            raise ValueError('Down-sampling factors p should be greater or equal to one.')
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
-        assert np.all(np.mod(p_log2, 1) == 0)  # Powers of 2.
+        if not np.all(np.mod(p_log2, 1) == 0):
+            raise ValueError('Down-sampling factors p should be powers of two.')
+        if len(M) == 0 and p[-1] != 1:
+            raise ValueError('Down-sampling should not be used in the last '
+                             'layer if no fully connected layer follows.')
 
         # Keep the useful Laplacians only. May be zero.
         M_0 = L[0].shape[0]
@@ -395,7 +398,8 @@ class cgcnn(base_model):
             F_last = F[i-1] if i > 0 else 1
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
-            print('    biases: F_{} = {}'.format(i+1, F[i]))
+            if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
+                print('    biases: F_{} = {}'.format(i+1, F[i]))
 
         if Ngconv:
             M_last = L[-1].shape[0] * F[-1] // p[-1]
@@ -424,7 +428,8 @@ class cgcnn(base_model):
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(
                     Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
-            print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            if i < Nfc - 1:  # No bias if it's a softmax.
+                print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
             M_last = M[i]
 
         # Store attributes and bind operations.
@@ -453,7 +458,7 @@ class cgcnn(base_model):
         L = sparse.csr_matrix(L)
         lmax = 1.02*sparse.linalg.eigsh(
                 L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax)
+        L = utils.rescale_L(L, lmax=lmax, scale=0.75)
         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
@@ -476,10 +481,14 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable([Fin*K, Fout], regularization=False)
-#         W = tf.Variable(initial_value=np.ones([Fin*K, Fout]), trainable=False, dtype=tf.float32)
+        W = self._weight_variable_cheby(K, Fin, Fout, regularization=True)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
+
+    def _weight_variable_cheby(self, K, Fin, Fout, regularization=True):
+        """Xavier like weight initializer for Chebychev coefficients."""
+        stddev = 1 / np.sqrt(Fin * (K + 0.5) / 2)
+        return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
 
     def monomials(self, x, L, Fout, K):
         r"""Convolution on graph with monomials."""
@@ -509,14 +518,14 @@ class cgcnn(base_model):
         x = tf.transpose(x, perm=[3, 1, 2, 0])  # N x M x Fin x K
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
-        W = self._weight_variable([Fin*K, Fout], regularization=False)
+        W = self._weight_variable([Fin*K, Fout], regularization=True)
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
     def bias(self, x):
         """Add one bias per filter."""
         N, M, F = x.get_shape()
-        b = self._bias_variable([1, 1, int(F)], regularization=True)
+        b = self._bias_variable([1, 1, int(F)], regularization=False)
         return x + b
 
     def pool_max(self, x, p):
@@ -562,10 +571,11 @@ class cgcnn(base_model):
         # All are rank-4 tensors: samples, nodes, features, bins.
         widths = tf.abs(widths)
         dist = tf.abs(x - centers)
-        hist = tf.reduce_sum(tf.nn.relu(1 - dist * widths), axis=1) / bins
+        hist = tf.reduce_mean(tf.nn.relu(1 - dist * widths), axis=1) * (bins/initial_range/4)
         return hist
 
     def batch_normalization(self, x, training, momentum=0.9):
+        """Batch norm layer."""
         # Normalize over all but the last dimension, that is the features.
         return tf.layers.batch_normalization(x,
                                              axis=-1,
@@ -575,12 +585,19 @@ class cgcnn(base_model):
                                              scale=False,  # Done by filters.
                                              training=training)
 
-    def fc(self, x, Mout):
+    def fc(self, x, Mout, bias=True):
         """Fully connected layer with Mout features."""
         N, Min = x.get_shape()
-        W = self._weight_variable([int(Min), Mout], regularization=True)
-        b = self._bias_variable([Mout], regularization=True)
-        return tf.matmul(x, W) + b
+        W = self._weight_variable_fc(int(Min), Mout, regularization=True)
+        y = tf.matmul(x, W)
+        if bias:
+            y += self._bias_variable([Mout], regularization=False)
+        return y
+
+    def _weight_variable_fc(self, Min, Mout, regularization=True):
+        """Xavier like weight initializer for fully connected layer."""
+        stddev = 1 / np.sqrt(Min)
+        return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
 
@@ -590,7 +607,9 @@ class cgcnn(base_model):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
-                if self.batch_norm[i]:
+                if i == len(self.p)-1 and len(self.M) == 0:
+                    break  # That is a linear layer before the softmax.
+                if self.batch_norm:
                     x = self.batch_normalization(x, training)
                 x = self.bias(x)
                 x = self.activation(x)
@@ -625,8 +644,10 @@ class cgcnn(base_model):
                 x = tf.nn.dropout(x, dropout)
 
         # Logits linear layer, i.e. softmax without normalization.
-        with tf.variable_scope('logits'):
-            x = self.fc(x, self.M[-1])
+        if len(self.M) != 0:
+            with tf.variable_scope('logits'):
+                x = self.fc(x, self.M[-1], bias=False)
+
         return x
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):

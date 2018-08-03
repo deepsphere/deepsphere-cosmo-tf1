@@ -171,32 +171,28 @@ def healpix_laplacian(nside=16,
     return L
 
 
-def rescale_L(L, lmax=2):
-    """Rescale the Laplacian eigenvalues in [-1,1]."""
+def rescale_L(L, lmax=2, scale=1):
+    """Rescale the Laplacian eigenvalues in [-scale,scale]."""
     M, M = L.shape
     I = sparse.identity(M, format='csr', dtype=L.dtype)
-    L /= lmax / 2
+    L /= (lmax / 2)
     L -= I
-    return L
+    return L*scale
 
 
 def build_laplacians(nsides, indexes=None, use_4=False):
-    """Build a list of Laplacian form nsides."""
+    """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
-    first = True
     if indexes is None:
         indexes = [None] * len(nsides)
-    for nside, ind in zip(nsides, indexes):
-        if not first:
-            pval = (nside_old // nside)**2
-            p.append(pval)
-        nside_old = nside
-        first = False
-        Lt = healpix_laplacian(nside=nside, indexes=ind, use_4=use_4)
-        L.append(Lt)
-    if len(L):
-        p.append(1)
+    for i, (nside, index) in enumerate(zip(nsides, indexes)):
+        if i > 0:  # First is input dimension.
+            p.append((nside_last // nside)**2)
+        nside_last = nside
+        if i < len(nsides) - 1:  # Last does not need a Laplacian.
+            laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4)
+            L.append(laplacian)
     return L, p
 
 
@@ -400,8 +396,9 @@ def compute_spherical_harmonics(nside, lmax):
             size = hp.sphtfunc.Alm.getsize(l, mmax=l)
             alm = np.zeros(size, dtype=np.complex128)
             idx = hp.sphtfunc.Alm.getidx(l, l, abs(m))
-            alm[idx] = 1 if m == 0 else 1 - 1j if m < 0 else 1 + 1j
+            alm[idx] = 1 if m == 0 else (1 - 1j)/np.sqrt(2) if m < 0 else (1 + 1j)/np.sqrt(2)
             harmonic = hp.sphtfunc.alm2map(alm, nside, l, verbose=False)
+            harmonic /= np.sqrt(np.sum(harmonic**2))
             harmonics[:, midx] = hp.reorder(harmonic, r2n=True)
             midx += 1
 

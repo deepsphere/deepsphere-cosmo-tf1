@@ -147,6 +147,30 @@ def get_testing_data(sigma, order, sigma_noise, x_raw_std=None):
     return x_raw, labels, x_raw_std
 
 def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature_type=None, augmentation=1, train_size=0.8):
+    """Preprocess the data for the different classfiers.
+
+       This function take the training and testing data and prepares it for the different problems. 
+       - For the svm classifier: it computes the features and augments the dataset.
+       - For the scnn: it simply return the raw data and create the validation set (add the noise)
+
+       Input
+       -----
+        * x_raw_train: training raw data (without noise)
+        * label_train: training labels
+        * x_raw_test: testing data (with noise)
+        * sigma_noise: noise level (we use Gaussian noise)
+        * feature_type: type of features ('psd', 'histogram', None), default None
+        * augmentation: how many times the dataset should be augmented, i.e., how many different
+          realization of the noise should be added.
+        
+       Outputs
+       -------
+       * feature_train: training features 
+       * labels_train: training label
+       * features_validation: validation features
+       * labels_validation: validation label
+       * features_test: testing features
+    """
     if feature_type=='histogram':
         cmin = np.min(x_raw_train)
         cmax = np.max(x_raw_train)
@@ -218,7 +242,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         features_test = (features_test - features_train_mean) / features_train_std      
         features_validation = (features_validation - features_train_mean) / features_train_std
     else:
-        if not(augmentation==1):
+        if augmentation != 1:
             raise ValueError('The raw data should be augmented using the LabeledDatasetWithNoise object.')
         features_train = x_raw_train
         labels_train = labels_train

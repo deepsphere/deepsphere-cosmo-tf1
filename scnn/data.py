@@ -120,20 +120,24 @@ class LabeledDatasetWithNoise(LabeledDataset):
                 level = self._el
             curr_it += 1
             yield self._add_noise(np.array(data), level), np.array(label)
-
-
 class GaussianNoise(object):
-
-    def __init__(self, loc=0, scale=1, seed=None):
+    def __init__(self, loc=0.0, scale=1., seed=None, all_level=True):
         """Initialize the Gaussian noise generator."""
         self.loc = loc
         self.scale = scale
-        self.rs = np.random.RandomState(seed)
-
+        self.seed = seed
+        self.all_level = all_level
+        self.rs = np.random.RandomState(self.seed)
     def __call__(self, size):
         """Return gaussian random noise of shape size."""
-        return self.rs.normal(self.loc, self.scale, size)
-
+        noise = self.scale*self.rs.randn(*size)+self.loc
+        if self.all_level:
+            if self.rs.randn()>0:
+                return noise
+            else:
+                return self.rs.rand()*noise
+        else:
+            return noise
 
 def grouper(iterable, n, fillvalue=None):
     """

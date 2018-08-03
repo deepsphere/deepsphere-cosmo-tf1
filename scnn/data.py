@@ -132,7 +132,7 @@ class GaussianNoise(object):
         """Return gaussian random noise of shape size."""
         noise = self.scale*self.rs.randn(*size)+self.loc
         if self.all_level:
-            if self.rs.randn()>0:
+            if self.rs.rand()>0.2:
                 return noise
             else:
                 return self.rs.rand()*noise

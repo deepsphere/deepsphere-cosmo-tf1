@@ -5,6 +5,7 @@ import shutil
 import sys
 
 import numpy as np
+
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
@@ -12,7 +13,7 @@ from paper_scnn_params import get_params
 
 
 def single_experiment(sigma, order, sigma_noise):
-    use_stat_layer = True
+
     Nside = 1024
 
     EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
@@ -26,10 +27,8 @@ def single_experiment(sigma, order, sigma_noise):
 
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
-    ntrain = len(features_train)
 
-    params = get_params(ntrain, EXP_NAME, order)
-
+    params = get_params(training.N, EXP_NAME, order, Nside)
     model = models.scnn(**params)
 
     # Cleanup before running again.
@@ -37,6 +36,7 @@ def single_experiment(sigma, order, sigma_noise):
     shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
 
     model.fit(training, validation)
+
     error_validation = experiment_helper.model_error(model, features_validation, labels_validation)
     print('The validation error is {}%'.format(error_validation * 100), flush=True)
 

@@ -5,6 +5,7 @@ import shutil
 import sys
 
 import numpy as np
+
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import egrid
@@ -26,9 +27,8 @@ def single_experiment(sigma, order, sigma_noise, name, **kwargs):
 
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
-    ntrain = len(features_train)
 
-    params = get_params(ntrain, EXP_NAME, order)
+    params = get_params(training.N, EXP_NAME, order, Nside)
     params.update(kwargs)
     model = models.scnn(**params)
 

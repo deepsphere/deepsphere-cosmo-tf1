@@ -368,9 +368,9 @@ class cgcnn(base_model):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
-        if not len(L) == len(F) == len(K) == len(p):
+        if not len(L) == len(F) == len(K) == len(p) == len(batch_norm):
             raise ValueError('Wrong specification of the convolutional layers: '
-                             'parameters L, F, K, p must have the same length.')
+                             'parameters L, F, K, p, batch_norm, must have the same length.')
         if not np.all(np.array(p) >= 1):
             raise ValueError('Down-sampling factors p should be greater or equal to one.')
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
@@ -400,6 +400,8 @@ class cgcnn(base_model):
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
             if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
                 print('    biases: F_{} = {}'.format(i+1, F[i]))
+            if batch_norm[i]:
+                print('    batch normalization')
 
         if Ngconv:
             M_last = L[-1].shape[0] * F[-1] // p[-1]
@@ -609,7 +611,7 @@ class cgcnn(base_model):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
                 if i == len(self.p)-1 and len(self.M) == 0:
                     break  # That is a linear layer before the softmax.
-                if self.batch_norm:
+                if self.batch_norm[i]:
                     x = self.batch_normalization(x, training)
                 x = self.bias(x)
                 x = self.activation(x)

@@ -90,7 +90,7 @@ class base_model(object):
         labels: size N
             N: number of signals (samples)
         """
-        t_process, t_wall = process_time(), time.time()
+        t_cpu, t_wall = process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
@@ -98,11 +98,11 @@ class base_model(object):
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
-            string += '\ntime: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall)
+            string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
     def fit(self, train_dataset, val_dataset):
-        t_process, t_wall = process_time(), time.time()
+        t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
@@ -143,7 +143,7 @@ class base_model(object):
                 accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 print('  validation {}'.format(string))
-                print('  time: {:.0f}s (wall {:.0f}s)'.format(process_time()-t_process, time.time()-t_wall))
+                print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
@@ -186,8 +186,7 @@ class base_model(object):
             # Model.
             op_logits = self.inference(self.ph_data, self.ph_training)
             self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
-            self.op_train = self.training(self.op_loss, self.learning_rate,
-                    self.decay_steps, self.decay_rate, self.momentum, self.adam)
+            self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
 
             # Initialize variables, i.e. weights and biases.
@@ -247,23 +246,15 @@ class base_model(object):
             tf.summary.scalar('loss/total', loss)
             return loss
 
-    def training(self, loss, learning_rate, decay_steps, decay_rate=0.95, momentum=0.9, adam=False, beta2=0.999):
+    def training(self, loss):
         """Adds to the loss model the Ops required to generate and apply gradients."""
         with tf.name_scope('training'):
             # Learning rate.
             global_step = tf.Variable(0, name='global_step', trainable=False)
-            if decay_rate != 1:
-                learning_rate = tf.train.exponential_decay(
-                        learning_rate, global_step, decay_steps, decay_rate, staircase=True)
-                tf.summary.scalar('learning_rate', learning_rate)
+            learning_rate = self.scheduler(global_step)
+            tf.summary.scalar('learning_rate', learning_rate)
             # Optimizer.
-            if adam:
-                optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=momentum, beta2=beta2)
-            else:
-                if momentum == 0:
-                    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-                else:
-                    optimizer = tf.train.MomentumOptimizer(learning_rate, momentum)
+            optimizer = self.optimizer(learning_rate)
             grads = optimizer.compute_gradients(loss)
             op_gradients = optimizer.apply_gradients(grads, global_step=global_step)
             # Histograms.
@@ -272,7 +263,7 @@ class base_model(object):
                     print('warning: {} has no gradient'.format(var.op.name))
                 else:
                     tf.summary.histogram(var.op.name + '/gradients', grad)
-            # The op return the learning rate.
+            # Add control dependencies to compute gradients and moving averages (batch normalization).
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies([op_gradients] + update_ops):
                 op_train = tf.identity(learning_rate, name='control')
@@ -344,26 +335,24 @@ class cgcnn(base_model):
             * 'histogram': compute a learned histogram of each feature map
 
     Training parameters:
-        num_epochs:    Number of training epochs.
-        learning_rate: Initial learning rate.
-        decay_rate:    Base of exponential decay. No decay with 1.
-        decay_steps:   Number of steps after which the learning rate decays.
-        momentum:      Momentum. 0 indicates no momentum.
-        adam:          Use adam optimizer.
+        num_epochs:     Number of training epochs.
+        scheduler:      Learning rate scheduler: function that takes the current step and returns the learning rate.
+        optimizer:      Function that takes the learning rate and returns a TF optimizer.
+        batch_size:     Batch size. Must divide evenly into the dataset sizes.
+        eval_frequency: Number of steps between evaluations.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
         dropout:        Dropout (fc layers): probability to keep hidden neurons. No dropout with 1.
-        batch_size:     Batch size. Must divide evenly into the dataset sizes.
-        eval_frequency: Number of steps between evaluations.
 
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, L, F, K, p, batch_norm, M, conv='chebyshev5', pool='max', activation='relu', statistics=None,
-                num_epochs=20, adam=True, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
-                regularization=0, dropout=0, batch_size=100, eval_frequency=200,
+    def __init__(self, L, F, K, p, batch_norm, M,
+                num_epochs, scheduler, optimizer,
+                conv='chebyshev5', pool='max', activation='relu', statistics=None,
+                regularization=0, dropout=1, batch_size=128, eval_frequency=200,
                 dir_name=''):
         super(cgcnn, self).__init__()
 
@@ -436,9 +425,8 @@ class cgcnn(base_model):
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
-        self.num_epochs, self.learning_rate = num_epochs, learning_rate
-        self.decay_rate, self.decay_steps, self.momentum = decay_rate, decay_steps, momentum
-        self.adam = adam
+        self.num_epochs = num_epochs
+        self.scheduler, self.optimizer = scheduler, optimizer
         self.regularization, self.dropout = regularization, dropout
         self.batch_size, self.eval_frequency = batch_size, eval_frequency
         self.batch_norm = batch_norm
@@ -725,29 +713,25 @@ class scnn(cgcnn):
             * 'histogram': compute a learned histogram of each feature map
 
     Training parameters:
-        num_epochs:    Number of training epochs.
-        learning_rate: Initial learning rate.
-        decay_rate:    Base of exponential decay. No decay with 1.
-        decay_steps:   Number of steps after which the learning rate decays.
-        momentum:      Momentum. 0 indicates no momentum.
-        adam:          Use adam optimizer.
+        num_epochs:     Number of training epochs.
+        scheduler:      Learning rate scheduler: function that takes the current step and returns the learning rate.
+        optimizer:      Function that takes the learning rate and returns a TF optimizer.
+        batch_size:     Batch size. Must divide evenly into the dataset sizes.
+        eval_frequency: Number of steps between evaluations.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
         dropout:        Dropout (fc layers): probability to keep hidden neurons. No dropout with 1.
-        batch_size:     Batch size. Must divide evenly into the dataset sizes.
-        eval_frequency: Number of steps between evaluations.
 
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, F, K, batch_norm, M, indexes=None, use_4=False, **kwargs):
-
+    def __init__(self, nsides, indexes=None, use_4=False, **kwargs):
         L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4)
         self.nsides = nsides
-        self.pygsp_graphs = [None]*len(nsides)
-        super(scnn, self).__init__(L, F, K, p, batch_norm, M, **kwargs)
+        self.pygsp_graphs = [None] * len(nsides)
+        super(scnn, self).__init__(L=L, p=p, **kwargs)
 
 
     def get_gsp_filters(self, layer,  ind_in=None, ind_out=None):

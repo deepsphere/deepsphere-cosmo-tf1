@@ -121,7 +121,7 @@ class LabeledDatasetWithNoise(LabeledDataset):
             curr_it += 1
             yield self._add_noise(np.array(data), level), np.array(label)
 class GaussianNoise(object):
-    def __init__(self, loc=0.0, scale=1., seed=None, all_level=True):
+    def __init__(self, loc=0.0, scale=1., seed=None, all_level=False):
         """Initialize the Gaussian noise generator."""
         self.loc = loc
         self.scale = scale

@@ -11,7 +11,7 @@ from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 from paper_scnn_params import get_params
 
-ename = '_5md1'
+ename = '_5md075'
 
 def single_experiment(sigma, order, sigma_noise):
 

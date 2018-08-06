@@ -448,7 +448,7 @@ class cgcnn(base_model):
         L = sparse.csr_matrix(L)
         lmax = 1.02*sparse.linalg.eigsh(
                 L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax, scale=1)
+        L = utils.rescale_L(L, lmax=lmax, scale=0.75)
         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)

@@ -1,18 +1,25 @@
 """Utilities module."""
 
 from __future__ import division
-import numpy as np
-from scipy import sparse
-import healpy as hp
+
 from builtins import range
 import os
 import sys
 import hashlib
 import zipfile
+
+import numpy as np
+from scipy import sparse
+import matplotlib.pyplot as plt
+import healpy as hp
+import tensorflow as tf
+
+
 if sys.version_info[0] > 2:
     from urllib.request import urlretrieve
 else:
     from urllib import urlretrieve
+
 
 def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     """Return an unnormalized weight matrix for a graph using the HEALPIX sampling.
@@ -348,7 +355,7 @@ def url_filename(url):
     return url.split('/')[-1].split('#')[0].split('?')[0]
 
 def check_md5(file_name, orginal_md5):
-    # Open,close, read file and calculate MD5 on its contents 
+    # Open,close, read file and calculate MD5 on its contents
     with open(file_name, 'rb') as f:
         hasher = hashlib.md5()  # Make empty hasher to update piecemeal
         while True:
@@ -403,3 +410,35 @@ def compute_spherical_harmonics(nside, lmax):
             midx += 1
 
     return harmonics
+
+
+def test_learning_rates(params, ntrain, lr_min=1e-6, lr_max=1e-1, num_epochs=20, exponential=True):
+    """Test learning rates from lr_min to lr_max.
+
+    The test is performed by linearly or exponentially increasing the
+    learning rate from lr_min to lr_max during num_epochs epochs.
+    The optimal learning rate can be determined by looking at the
+    validation loss and choosing the largest value for which the loss
+    still decreases.
+    """
+
+    params['dir_name'] = 'lr_finder'
+    params['num_epochs'] = num_epochs
+
+    n_steps = num_epochs * ntrain // params['batch_size']
+
+    if exponential:
+        decay = np.power(lr_max/lr_min, 1/n_steps, dtype=np.float32)
+        def scheduler(step):
+            return lr_min * decay ** step
+        params['scheduler'] = lambda step: scheduler(tf.to_float(step))
+    else:
+        def scheduler(step):
+            return lr_min + step/n_steps * (lr_max-lr_min)
+        params['scheduler'] = lambda step: scheduler(step)
+
+    steps = np.arange(params['eval_frequency'], n_steps, params['eval_frequency'])
+    steps = np.append(steps, n_steps) - 1
+    learning_rate = scheduler(steps)
+
+    return params, learning_rate

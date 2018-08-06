@@ -17,7 +17,7 @@ def get_params(ntrain, EXP_NAME, order, Nside):
 
     # Architecture.
     params['F'] = [16, 32, 64, 64, 64, n_classes]  # Graph convolutional layers: number of feature maps.
-    params['K'] = [2] * 6  # Polynomial orders.
+    params['K'] = [5] * 6  # Polynomial orders.
     params['batch_norm'] = [True] * 6  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 

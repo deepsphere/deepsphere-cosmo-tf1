@@ -16,7 +16,7 @@ def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigmai_c5'.format(
         Nside, sigma_noise, order, sigma)
 
     x_raw_train, labels_raw_train, x_raw_std = experiment_helper.get_training_data(sigma, order)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     for sigma, order, sigma_noise in grid:
         print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}_c5'.format(sigma))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

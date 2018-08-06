@@ -1,10 +1,15 @@
 """Plotting module."""
 
 from __future__ import division
+
+from builtins import range
+import datetime
+
 import numpy as np
 import healpy as hp
-from builtins import range
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+
 from . import utils
 
 
@@ -231,3 +236,25 @@ def zoom_mollview(sig, cmin=None, cmax=None, nest=True):
     plt.xticks([])
     plt.yticks([])
     return fig
+
+
+def plot_loss(loss_training, loss_validation, t_step, eval_frequency):
+
+    x_step = np.arange(len(loss_training)) * eval_frequency
+    x_time = t_step * x_step
+    x_time = [datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=sec) for sec in x_time]
+
+    fig, ax_step = plt.subplots()
+    ax_step.semilogy(x_step, loss_training, '.-', label='training')
+    ax_step.semilogy(x_step, loss_validation, '.-', label='validation')
+    ax_time = ax_step.twiny()
+    ax_time.semilogy(x_time, loss_training, linewidth=0)
+
+    fmt = mpl.dates.DateFormatter('%H:%M:%S')
+    ax_time.xaxis.set_major_formatter(fmt)
+
+    ax_step.set_xlabel('Training step')
+    ax_time.set_xlabel('Training time [s]')
+    ax_step.set_ylabel('Loss')
+    ax_step.grid(which='both')
+    ax_step.legend()

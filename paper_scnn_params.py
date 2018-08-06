@@ -1,6 +1,9 @@
 """Parameters used for the experiments of the paper."""
 
+import tensorflow as tf
+
 from scnn import utils
+
 
 def get_params(ntrain, EXP_NAME, order, Nside):
 
@@ -24,11 +27,15 @@ def get_params(ntrain, EXP_NAME, order, Nside):
     # Pooling.
     nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
     print('#sides: {}'.format(nsides))
-    print('#pixels per sample: {}'.format([(nside//order)**2 for nside in nsides]))
+    print('#pixels: {}'.format([(nside//order)**2 for nside in nsides]))
     # Number of pixels on the full sphere: 12 * nsides**2.
     indexes = utils.nside2indexes(nsides, order)
     params['nsides'] = nsides
     params['indexes'] = indexes
+
+    # Regularization (to prevent over-fitting).
+    params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
     params['num_epochs'] = 80  # Number of passes through the training data.
@@ -37,21 +44,10 @@ def get_params(ntrain, EXP_NAME, order, Nside):
     print('=> #pixels per batch (input): {:,}'.format(params['batch_size']*(Nside//order)**2))
     print('=> #pixels for training (input): {:,}'.format(params['num_epochs']*ntrain*(Nside//order)**2))
 
-    # Regularization (to prevent over-fitting).
-    params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
-    params['dropout'] = 1  # Percentage of neurons to keep for each training step.
-
-    # Optimization.
-    params['adam'] = True
-    params['momentum'] = 0.9
-    params['learning_rate'] = 2e-4  # Initial learning rate.
-    params['decay_rate'] = 0.98
-    # Decay the learning rate n_decays times during training.
+    # Optimization: learning rate schedule and optimizer.
     n_steps = params['num_epochs'] * ntrain / params['batch_size']
-    n_decays = 100
-    params['decay_steps'] = n_steps / n_decays
-    print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(
-        params['learning_rate'], params['learning_rate']*params['decay_rate']**n_decays))
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=n_steps/100, decay_rate=0.98)
+    params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
     # Number of model evaluations during training (influence training time).
     n_evaluations = 200

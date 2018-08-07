@@ -157,18 +157,13 @@ class base_model(object):
                 indices.extend(np.random.permutation(train_dataset.N))
             idx = [indices.popleft() for i in range(self.batch_size)]
 
-<<<<<<< HEAD
+
             # batch_data, batch_labels = next(train_iter)
             # if type(batch_data) is not np.ndarray:
             #     batch_data = batch_data.toarray()  # convert sparse matrices
             # feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             feed_dict = {self.ph_training: True}
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
-=======
-            batch_data, batch_labels = next(train_iter)
-            if type(batch_data) is not np.ndarray:
-                batch_data = batch_data.toarray()  # convert sparse matrices
-            feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
 
             evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
             if evaluate and self.profile:
@@ -179,7 +174,6 @@ class base_model(object):
                 run_metadata = None
 
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
->>>>>>> 929728609a00dc2529d682dd180dd23f88aea6b4
 
             # Periodical evaluation of the model.
             if evaluate:

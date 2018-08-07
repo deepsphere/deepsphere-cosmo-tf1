@@ -123,10 +123,11 @@ class base_model(object):
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
-    def fit(self, train_dataset, val_dataset):
+    def fit(self, train_dataset, val_dataset, use_tf_dataset=False):
 
         # Load the dataset
-        self.loadable_generator.load(train_dataset.iter())
+        if use_tf_dataset:
+            self.loadable_generator.load(train_dataset.iter(self.batch_size))
 
         t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
@@ -140,29 +141,28 @@ class base_model(object):
 
         # Initialization
         sess.run(self.op_init)
-        sess.run(self.tf_data_iterator.initializer)
 
         # Training.
         accuracies_validation = []
         losses_validation = []
         losses_training = []
-        indices = collections.deque()
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
-        # train_iter = train_dataset.iter(self.batch_size)
+        if not use_tf_dataset:
+            train_iter = train_dataset.iter(self.batch_size)
+        else:
+            sess.run(self.tf_data_iterator.initializer)
+
         val_data, val_labels = val_dataset.get_all_data()
         for step in range(1, num_steps+1):
 
-            # Be sure to have used all the samples before using one a second time.
-            if len(indices) < self.batch_size:
-                indices.extend(np.random.permutation(train_dataset.N))
-            idx = [indices.popleft() for i in range(self.batch_size)]
+            if not use_tf_dataset:
+                batch_data, batch_labels = next(train_iter)
+                if type(batch_data) is not np.ndarray:
+                    batch_data = batch_data.toarray()  # convert sparse matrices
+                feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
+            else:
+                feed_dict = {self.ph_training: True}
 
-
-            # batch_data, batch_labels = next(train_iter)
-            # if type(batch_data) is not np.ndarray:
-            #     batch_data = batch_data.toarray()  # convert sparse matrices
-            # feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-            feed_dict = {self.ph_training: True}
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
@@ -226,7 +226,7 @@ class base_model(object):
 
             # Make the dataset
             self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
-            self.tf_data_iterator = self.tf_train_dataset.batch(self.batch_size).make_initializable_iterator()
+            self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
 

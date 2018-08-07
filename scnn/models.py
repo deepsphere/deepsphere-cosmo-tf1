@@ -9,14 +9,16 @@ import os
 import time
 import collections
 import shutil
+from builtins import range
 
 import numpy as np
 from scipy import sparse
 import sklearn
 import tensorflow as tf
-from builtins import range
+from tensorflow.python import debug as tf_debug
 
 from . import utils
+
 
 def show_all_variables():
     import tensorflow as tf
@@ -104,6 +106,8 @@ class base_model(object):
     def fit(self, train_dataset, val_dataset):
         t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
+        if self.debug:
+            sess = tf_debug.TensorBoardDebugWrapperSession(sess, 'localhost:6064')
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
@@ -351,6 +355,7 @@ class cgcnn(base_model):
         batch_size:     Batch size. Must divide evenly into the dataset sizes.
         eval_frequency: Number of steps between evaluations.
         profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
+        debug:          Whether the model should be debuggable via Tensorboard.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
@@ -364,7 +369,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
-                dir_name='', profile=False):
+                dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -446,7 +451,7 @@ class cgcnn(base_model):
         self.pool = getattr(self, 'pool_' + pool)
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
-        self.profile = profile
+        self.profile, self.debug = profile, debug
 
         # Build the computational graph.
         self.build_graph(M_0)

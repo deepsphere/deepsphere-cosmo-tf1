@@ -11,13 +11,14 @@ from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 from paper_scnn_params import get_params
 
+ename = '_fin'
 
 def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma'.format(
-        Nside, sigma_noise, order, sigma)
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma3{}'.format(
+        Nside, sigma_noise, order, sigma, ename)
 
     x_raw_train, labels_raw_train, x_raw_std = experiment_helper.get_training_data(sigma, order)
     x_raw_test, labels_test, _ = experiment_helper.get_testing_data(sigma, order, sigma_noise, x_raw_std)
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     for sigma, order, sigma_noise in grid:
         print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
         res = single_experiment(sigma, order, sigma_noise)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}'.format(sigma))
+        filepath = os.path.join(path, 'scnn_results_list_sigma{}{}'.format(sigma,ename))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

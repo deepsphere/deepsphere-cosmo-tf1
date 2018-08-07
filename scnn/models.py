@@ -293,12 +293,12 @@ class base_model(object):
         tf.summary.histogram(var.op.name, var)
         return var
 
-    def _bias_variable(self, shape, stddev=1, regularization=False):
-        # initial = tf.constant_initializer(0.1)
-        initial = tf.truncated_normal_initializer(0, stddev=stddev)
+    def _bias_variable(self, shape, regularization=False):
+        initial = tf.constant_initializer(0)
+        # initial = tf.truncated_normal_initializer(0, stddev=1)
         var = tf.get_variable('bias', shape, tf.float32, initializer=initial)
         if regularization:
-            self.regularizers.append(tf.nn.l2_loss(var) / stddev**2)
+            self.regularizers.append(tf.nn.l2_loss(var))
             self.regularizers_size.append(np.prod(shape))
         tf.summary.histogram(var.op.name, var)
         return var

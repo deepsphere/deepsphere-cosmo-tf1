@@ -9,14 +9,16 @@ import os
 import time
 import collections
 import shutil
+from builtins import range
 
 import numpy as np
 from scipy import sparse
 import sklearn
 import tensorflow as tf
-from builtins import range
+from tensorflow.python import debug as tf_debug
 
 from . import utils
+
 
 def show_all_variables():
     import tensorflow as tf
@@ -128,6 +130,8 @@ class base_model(object):
 
         t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
+        if self.debug:
+            sess = tf_debug.TensorBoardDebugWrapperSession(sess, 'localhost:6064')
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
@@ -153,15 +157,32 @@ class base_model(object):
                 indices.extend(np.random.permutation(train_dataset.N))
             idx = [indices.popleft() for i in range(self.batch_size)]
 
+<<<<<<< HEAD
             # batch_data, batch_labels = next(train_iter)
             # if type(batch_data) is not np.ndarray:
             #     batch_data = batch_data.toarray()  # convert sparse matrices
             # feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             feed_dict = {self.ph_training: True}
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
+=======
+            batch_data, batch_labels = next(train_iter)
+            if type(batch_data) is not np.ndarray:
+                batch_data = batch_data.toarray()  # convert sparse matrices
+            feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
+
+            evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
+            if evaluate and self.profile:
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
+            else:
+                run_options = None
+                run_metadata = None
+
+            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
+>>>>>>> 929728609a00dc2529d682dd180dd23f88aea6b4
 
             # Periodical evaluation of the model.
-            if step % self.eval_frequency == 0 or step == num_steps:
+            if evaluate:
                 epoch = step * self.batch_size / train_dataset.N
                 print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                 print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
@@ -179,6 +200,8 @@ class base_model(object):
                 summary.value.add(tag='validation/f1', simple_value=f1)
                 summary.value.add(tag='validation/loss', simple_value=loss)
                 writer.add_summary(summary, step)
+                if self.profile:
+                    writer.add_run_metadata(run_metadata, 'step{}'.format(step))
 
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
@@ -376,6 +399,8 @@ class cgcnn(base_model):
         optimizer:      Function that takes the learning rate and returns a TF optimizer.
         batch_size:     Batch size. Must divide evenly into the dataset sizes.
         eval_frequency: Number of steps between evaluations.
+        profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
+        debug:          Whether the model should be debuggable via Tensorboard.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
@@ -389,7 +414,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
-                dir_name=''):
+                dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -471,6 +496,7 @@ class cgcnn(base_model):
         self.pool = getattr(self, 'pool_' + pool)
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
+        self.profile, self.debug = profile, debug
 
         # Build the computational graph.
         self.build_graph(M_0)
@@ -754,6 +780,7 @@ class scnn(cgcnn):
         optimizer:      Function that takes the learning rate and returns a TF optimizer.
         batch_size:     Batch size. Must divide evenly into the dataset sizes.
         eval_frequency: Number of steps between evaluations.
+        profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.

@@ -40,7 +40,7 @@ class LoadableGenerator(object):
     def __init__(self):
         self.curr = None
         self.it = None
-        
+
     def iter(self):
         return self.__iter__()
     def __iter__(self):
@@ -54,7 +54,7 @@ class LoadableGenerator(object):
             try:
                 self.curr = next(self.it)
             except StopIteration:
-                self.curr = None    
+                self.curr = None
 
 class base_model(object):
     """Common methods for all models."""
@@ -394,7 +394,7 @@ class cgcnn(base_model):
         batch_size:     Batch size. Must divide evenly into the dataset sizes.
         eval_frequency: Number of steps between evaluations.
         profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
-        debug:          Whether the model should be debuggable via Tensorboard.
+        debug:          Whether the model should be debugged via Tensorboard.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.
@@ -775,6 +775,7 @@ class scnn(cgcnn):
         batch_size:     Batch size. Must divide evenly into the dataset sizes.
         eval_frequency: Number of steps between evaluations.
         profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
+        debug:          Whether the model should be debugged via Tensorboard.
 
     Regularization parameters:
         regularization: L2 regularizations of weights and biases.

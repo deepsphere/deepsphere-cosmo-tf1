@@ -149,7 +149,7 @@ def get_testing_data(sigma, order, sigma_noise, x_raw_std=None):
 def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature_type=None, augmentation=1, train_size=0.8):
     """Preprocess the data for the different classfiers.
 
-       This function take the training and testing data and prepares it for the different problems. 
+       This function take the training and testing data and prepares it for the different problems.
        - For the svm classifier: it computes the features and augments the dataset.
        - For the scnn: it simply return the raw data and create the validation set (add the noise)
 
@@ -162,10 +162,10 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         * feature_type: type of features ('psd', 'histogram', None), default None
         * augmentation: how many times the dataset should be augmented, i.e., how many different
           realization of the noise should be added.
-        
+
        Outputs
        -------
-       * feature_train: training features 
+       * feature_train: training features
        * labels_train: training label
        * features_validation: validation features
        * labels_validation: validation label
@@ -224,7 +224,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
 
         print('Computing the features for the validation set', flush=True)
         features_validation = func(x_noise_validation)
-        
+
         print('Computing the features for the testing set', flush=True)
         features_test = func(x_raw_test)
 
@@ -239,7 +239,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
         features_train_std = np.std(features_train, axis=0)+1e-6
 
         features_train = (features_train - features_train_mean) / features_train_std
-        features_test = (features_test - features_train_mean) / features_train_std      
+        features_test = (features_test - features_train_mean) / features_train_std
         features_validation = (features_validation - features_train_mean) / features_train_std
     else:
         if augmentation != 1:

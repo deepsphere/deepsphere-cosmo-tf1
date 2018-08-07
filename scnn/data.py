@@ -61,7 +61,7 @@ class LabeledDataset(object):
             label_iter = grouper(self._label[self._p], batch_size)
         else:
             data_iter = cycle(self._X[self._p])
-            label_iter = cycle(self._label[self._p])
+            label_iter = cycle(self._label[self._p])6
         for data, label in zip_longest(data_iter, label_iter):
             if batch_size>1:
                 data, label = np.array(data), np.array(label)
@@ -116,7 +116,6 @@ class LabeledDatasetWithNoise(LabeledDataset):
         else:
             self._p = np.arange(self._N)
 
-  
         if batch_size>1:
             data_iter = grouper(cycle(self._X[self._p]), batch_size)
             label_iter = grouper(cycle(self._label[self._p]), batch_size)
@@ -133,8 +132,8 @@ class LabeledDatasetWithNoise(LabeledDataset):
             else:
                 level = self._el
             curr_it += 1
-            yield self._add_noise(data, level), label   
-
+            yield self._add_noise(data, level), label  
+             
 class GaussianNoise(object):
     def __init__(self, loc=0.0, scale=1., seed=None, all_level=False):
         """Initialize the Gaussian noise generator."""

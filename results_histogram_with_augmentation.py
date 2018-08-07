@@ -25,7 +25,7 @@ def single_experiment(sigma, order, sigma_noise, path):
         augmentation = 40
 
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type='histogram', augmentation=augmentation)
-    features_train, labels_train, features_validation, labels_validation, features_test = ret 
+    features_train, labels_train, features_validation, labels_validation, features_test = ret
     ntrain = len(features_train)//augmentation
 
     nsamples = list(ntrain // 12 * np.linspace(1, 6, num=6).astype(np.int))

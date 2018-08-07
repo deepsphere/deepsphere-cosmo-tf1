@@ -46,20 +46,18 @@ class LabeledDataset(object):
         else:
             return self._X[:N], self._label[:N]
 
-    def iter(self, batch_size=1):
+    def iter(self):
         '''Return an iterator which iterates on the elements of the dataset.'''
-        return self.__iter__(batch_size)
+        return self.__iter__()
 
-    def __iter__(self, batch_size=1):
+    def __iter__(self):
         if self.shuffled:
             self._p = np.random.permutation(self._N)
         else:
             self._p = np.arange(self._N)        
-        data_iter = grouper(cycle(self._X[self._p]), batch_size)
-        label_iter = grouper(cycle(self._label[self._p]), batch_size)
+        data_iter = cycle(self._X[self._p])
+        label_iter = cycle(self._label[self._p])
         for data, label in zip_longest(data_iter, label_iter):
-
-            data, label = np.array(data), np.array(label)
             if self._transform:
                 yield self._transform(data), label
             else:
@@ -105,21 +103,22 @@ class LabeledDatasetWithNoise(LabeledDataset):
     def _add_noise(self, X, level):
         return X + level * self._noise_func(size=X.shape)
 
-    def __iter__(self, batch_size=1):
+    def __iter__(self):
         curr_it = 0
         if self.shuffled:
             self._p = np.random.permutation(self._N)
         else:
             self._p = np.arange(self._N)        
-        data_iter = grouper(cycle(self._X[self._p]), batch_size)
-        label_iter = grouper(cycle(self._label[self._p]), batch_size)
+        data_iter = cycle(self._X[self._p])
+        label_iter = cycle(self._label[self._p])
         for data, label in zip_longest(data_iter, label_iter):
             if curr_it < self._nit:
                 level = self._sl + curr_it/self._nit * (self._el - self._sl)
             else:
                 level = self._el
             curr_it += 1
-            yield self._add_noise(np.array(data), level), np.array(label)
+            yield self._add_noise(data, level), label
+            
 class GaussianNoise(object):
     def __init__(self, loc=0.0, scale=1., seed=None, all_level=False):
         """Initialize the Gaussian noise generator."""

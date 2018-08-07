@@ -33,6 +33,26 @@ else:
     def process_time():
         return np.nan
 
+# This class is necessary for the dataset
+class LoadableGenerator(object):
+    def __init__(self):
+        self.curr = None
+        self.it = None
+        
+    def iter(self):
+        return self.__iter__()
+    def __iter__(self):
+        self.update()
+        while self.curr:
+            yield self.curr
+    def load(self, it):
+        self.it = it
+    def update(self):
+        if self.it:
+            try:
+                self.curr = next(self.it)
+            except StopIteration:
+                self.curr = None    
 
 class base_model(object):
     """Common methods for all models."""
@@ -102,6 +122,10 @@ class base_model(object):
         return string, accuracy, f1, loss
 
     def fit(self, train_dataset, val_dataset):
+
+        # Load the dataset
+        self.loadable_generator.load(train_dataset.iter())
+
         t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
@@ -109,7 +133,10 @@ class base_model(object):
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
         os.makedirs(self._get_path('checkpoints'))
         path = os.path.join(self._get_path('checkpoints'), 'model')
+
+        # Initialization
         sess.run(self.op_init)
+        sess.run(self.tf_data_iterator.initializer)
 
         # Training.
         accuracies_validation = []
@@ -117,7 +144,7 @@ class base_model(object):
         losses_training = []
         indices = collections.deque()
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
-        train_iter = train_dataset.iter(self.batch_size)
+        # train_iter = train_dataset.iter(self.batch_size)
         val_data, val_labels = val_dataset.get_all_data()
         for step in range(1, num_steps+1):
 
@@ -126,11 +153,11 @@ class base_model(object):
                 indices.extend(np.random.permutation(train_dataset.N))
             idx = [indices.popleft() for i in range(self.batch_size)]
 
-            batch_data, batch_labels = next(train_iter)
-            if type(batch_data) is not np.ndarray:
-                batch_data = batch_data.toarray()  # convert sparse matrices
-            feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-
+            # batch_data, batch_labels = next(train_iter)
+            # if type(batch_data) is not np.ndarray:
+            #     batch_data = batch_data.toarray()  # convert sparse matrices
+            # feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
+            feed_dict = {self.ph_training: True}
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
             # Periodical evaluation of the model.
@@ -174,13 +201,22 @@ class base_model(object):
 
     def build_graph(self, M_0):
         """Build the computational graph of the model."""
+
+        self.loadable_generator = LoadableGenerator()
+
         self.graph = tf.Graph()
         with self.graph.as_default():
 
+            # Make the dataset
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
+            self.tf_data_iterator = self.tf_train_dataset.batch(self.batch_size).make_initializable_iterator()
+            ph_data, ph_labels = self.tf_data_iterator.get_next()
+
+
             # Inputs.
             with tf.name_scope('inputs'):
-                self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
-                self.ph_labels = tf.placeholder(tf.int32, (self.batch_size), 'labels')
+                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+                self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.

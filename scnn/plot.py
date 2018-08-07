@@ -56,7 +56,7 @@ def plot_filters_gnomonic(filters, order=10, ind=0, title='Filter {}->{}', grati
     # return fig
     if graticule:
         with utils.HiddenPrints():
-            hp.graticule()
+            hp.graticule(verbose=False)
 
 
 
@@ -65,6 +65,7 @@ def plot_filters_section(filters,
                          xlabel='out map {}',
                          ylabel='in map {}',
                          title='Sections of the {} filters in the filterbank',
+                         figsize=None,
                          **kwargs):
     """Plot the sections of all filters in a filterbank."""
 
@@ -94,8 +95,12 @@ def plot_filters_section(filters,
     angle -= abs(angle[-1] + angle[0]) / 2
     angle = angle / (2 * np.pi) * 360
 
+    if figsize==None:
+        figsize = (12, 12/ncols*nrows)
+        print(ncols, nrows)
+
     # Plot everything.
-    fig, axes = plt.subplots(nrows, ncols, figsize=(12, 12/ncols*nrows),
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize,
                              squeeze=False, sharex='col', sharey='row')
 
     ymin, ymax = 1.05*maps.min(), 1.05*maps.max()

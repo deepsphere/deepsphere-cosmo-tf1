@@ -40,7 +40,7 @@ class LoadableGenerator(object):
     def __init__(self):
         self.curr = None
         self.it = None
-        
+
     def iter(self):
         return self.__iter__()
     def __iter__(self):
@@ -54,7 +54,7 @@ class LoadableGenerator(object):
             try:
                 self.curr = next(self.it)
             except StopIteration:
-                self.curr = None    
+                self.curr = None
 
 class base_model(object):
     """Common methods for all models."""

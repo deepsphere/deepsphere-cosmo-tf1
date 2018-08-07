@@ -54,7 +54,7 @@ class LabeledDataset(object):
         if self.shuffled:
             self._p = np.random.permutation(self._N)
         else:
-            self._p = np.arange(self._N)        
+            self._p = np.arange(self._N)
         data_iter = cycle(self._X[self._p])
         label_iter = cycle(self._label[self._p])
         for data, label in zip_longest(data_iter, label_iter):
@@ -108,7 +108,7 @@ class LabeledDatasetWithNoise(LabeledDataset):
         if self.shuffled:
             self._p = np.random.permutation(self._N)
         else:
-            self._p = np.arange(self._N)        
+            self._p = np.arange(self._N)
         data_iter = cycle(self._X[self._p])
         label_iter = cycle(self._label[self._p])
         for data, label in zip_longest(data_iter, label_iter):
@@ -118,7 +118,7 @@ class LabeledDatasetWithNoise(LabeledDataset):
                 level = self._el
             curr_it += 1
             yield self._add_noise(data, level), label
-            
+
 class GaussianNoise(object):
     def __init__(self, loc=0.0, scale=1., seed=None, all_level=False):
         """Initialize the Gaussian noise generator."""

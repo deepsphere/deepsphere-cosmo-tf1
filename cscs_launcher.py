@@ -1,5 +1,6 @@
 import os
 from grid import pgrid
+import time
 
 txtfile = '''#!/bin/bash -l
 #SBATCH --time=6:00:00
@@ -31,3 +32,4 @@ def launch_simulation(sigma, order, sigma_noise):
 grid = pgrid()
 for p in grid:
     launch_simulation(*p)
+    time.sleep(1)

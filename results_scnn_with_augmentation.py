@@ -5,19 +5,20 @@ import shutil
 import sys
 
 import numpy as np
+import time
 
 from scnn import models, utils, experiment_helper
 from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 from paper_scnn_params import get_params
 
-ename = '_fin'
+ename = '_adam'
 
 def single_experiment(sigma, order, sigma_noise):
 
     Nside = 1024
 
-    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma3{}'.format(
+    EXP_NAME = '40sim_{}sides_{}noise_{}order_{}sigma{}'.format(
         Nside, sigma_noise, order, sigma, ename)
 
     x_raw_train, labels_raw_train, x_raw_std = experiment_helper.get_training_data(sigma, order)
@@ -62,6 +63,8 @@ if __name__ == '__main__':
 
     for sigma, order, sigma_noise in grid:
         print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
+        # avoid all jobs starting at the same time
+        time.sleep(np.random.rand()*100)
         res = single_experiment(sigma, order, sigma_noise)
         filepath = os.path.join(path, 'scnn_results_list_sigma{}{}'.format(sigma,ename))
         new_data = [order, sigma_noise, res]

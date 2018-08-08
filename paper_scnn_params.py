@@ -45,11 +45,11 @@ def get_params(ntrain, EXP_NAME, order, Nside):
     print('=> #pixels for training (input): {:,}'.format(params['num_epochs']*ntrain*(Nside//order)**2))
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(8e-3, step, decay_steps=5, decay_rate=0.98)
-    params['optimizer'] = lambda lr: tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True)
+    # params['scheduler'] = lambda step: tf.train.exponential_decay(8e-3, step, decay_steps=5, decay_rate=0.98)
+    # params['optimizer'] = lambda lr: tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True)
     # Adam alternative. More variance on final validation accuracy. Requires about 80 epochs.
-    # params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=20, decay_rate=0.98)
-    # params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=20, decay_rate=0.98)
+    params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
     n_steps = params['num_epochs'] * ntrain // params['batch_size']
     lr_max, lr_min = params['scheduler']([0, n_steps]).eval(session=tf.Session())
     print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(lr_max, lr_min))

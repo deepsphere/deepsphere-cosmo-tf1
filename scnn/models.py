@@ -20,12 +20,6 @@ from tensorflow.python import debug as tf_debug
 from . import utils
 
 
-def show_all_variables():
-    import tensorflow as tf
-    import tensorflow.contrib.slim as slim
-    model_vars = tf.trainable_variables()
-    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
-
 # Python 2 compatibility.
 if hasattr(time, 'process_time'):
     process_time = time.process_time
@@ -34,6 +28,13 @@ else:
     warnings.warn('The CPU time is not working with Python 2.')
     def process_time():
         return np.nan
+
+# def show_all_variables():
+#     import tensorflow as tf
+#     import tensorflow.contrib.slim as slim
+#     model_vars = tf.trainable_variables()
+#     slim.model_analyzer.analyze_vars(model_vars, print_info=True)
+
 
 # This class is necessary for the dataset
 class LoadableGenerator(object):
@@ -495,7 +496,7 @@ class cgcnn(base_model):
         # Build the computational graph.
         self.build_graph(M_0)
 
-        show_all_variables()
+        # show_all_variables()
 
     def chebyshev5(self, x, L, Fout, K):
         N, M, Fin = x.get_shape()

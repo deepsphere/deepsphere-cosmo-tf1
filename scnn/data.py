@@ -57,8 +57,8 @@ class LabeledDataset(object):
             self._p = np.arange(self._N)    
 
         if batch_size>1:
-            data_iter = grouper(self._X[self._p], batch_size)
-            label_iter = grouper(self._label[self._p], batch_size)
+            data_iter = grouper(cycle(self._X[self._p]), batch_size)
+            label_iter = grouper(cycle(self._label[self._p]), batch_size)
         else:
             data_iter = cycle(self._X[self._p])
             label_iter = cycle(self._label[self._p])

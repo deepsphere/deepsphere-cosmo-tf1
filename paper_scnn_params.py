@@ -5,7 +5,7 @@ import tensorflow as tf
 from scnn import utils
 
 
-def get_params(ntrain, EXP_NAME, order, Nside):
+def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True):
 
     n_classes = 2
 
@@ -26,36 +26,49 @@ def get_params(ntrain, EXP_NAME, order, Nside):
 
     # Pooling.
     nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
-    print('#sides: {}'.format(nsides))
-    print('#pixels: {}'.format([(nside//order)**2 for nside in nsides]))
-    # Number of pixels on the full sphere: 12 * nsides**2.
-    indexes = utils.nside2indexes(nsides, order)
     params['nsides'] = nsides
-    params['indexes'] = indexes
+    params['indexes'] = utils.nside2indexes(nsides, order)
+
+    if architecture == "CNN":
+        # Replace the last graph convolution and global average pooling by a fully connected layer.
+        # That is, change the classifier while keeping the feature extractor.
+        params['F'] = params['F'][:-1]
+        params['K'] = params['K'][:-1]
+        params['batch_norm'] = params['batch_norm'][:-1]
+        params['nsides'] = params['nsides'][:-1]
+        params['indexes'] = params['indexes'][:-1]
+        params['statistics'] = None
+        params['M'] = [n_classes]
+    elif architecture != "FCN":
+        raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 60  # Number of passes through the training data.
+    params['num_epochs'] = 80  # Number of passes through the training data.
     params['batch_size'] = 16 * order**2  # Constant quantity of information (#pixels) per step (invariant to sample size).
-    print('#samples per batch: {}'.format(params['batch_size']))
-    print('=> #pixels per batch (input): {:,}'.format(params['batch_size']*(Nside//order)**2))
-    print('=> #pixels for training (input): {:,}'.format(params['num_epochs']*ntrain*(Nside//order)**2))
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(8e-3, step, decay_steps=5, decay_rate=0.98)
-    params['optimizer'] = lambda lr: tf.train.MomentumOptimizer(lr, momentum=0.9, use_nesterov=True)
-    # Adam alternative. More variance on final validation accuracy. Requires about 80 epochs.
-    # params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=20, decay_rate=0.98)
-    # params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
-    n_steps = params['num_epochs'] * ntrain // params['batch_size']
-    lr_max, lr_min = params['scheduler']([0, n_steps]).eval(session=tf.Session())
-    print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(lr_max, lr_min))
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=1, decay_rate=0.999)
+    params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
     # Number of model evaluations during training (influence training time).
     n_evaluations = 200
     params['eval_frequency'] = int(params['num_epochs'] * ntrain / params['batch_size'] / n_evaluations)
+
+    if verbose:
+        print('#sides: {}'.format(nsides))
+        print('#pixels: {}'.format([(nside//order)**2 for nside in nsides]))
+        # Number of pixels on the full sphere: 12 * nsides**2.
+
+        print('#samples per batch: {}'.format(params['batch_size']))
+        print('=> #pixels per batch (input): {:,}'.format(params['batch_size']*(Nside//order)**2))
+        print('=> #pixels for training (input): {:,}'.format(params['num_epochs']*ntrain*(Nside//order)**2))
+
+        n_steps = params['num_epochs'] * ntrain // params['batch_size']
+        lr = [params['scheduler'](step).eval(session=tf.Session()) for step in [0, n_steps]]
+        print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(*lr))
 
     return params

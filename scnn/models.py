@@ -849,7 +849,7 @@ class scnn(cgcnn):
         return fig
 
     def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
-        """Plot the filter section on the sphere
+        """Plot the filter localization on gnomonic view.
 
         Arguments
         ---------

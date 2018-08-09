@@ -21,7 +21,7 @@ srun python results_scnn_with_augmentation.py {0} {1} {2} {3}
 '''
 
 
-def launch_simulation(sigma, order, sigma_noise, etype):
+def launch_simulation(etype, sigma, order, sigma_noise):
     sbatch_txt = txtfile.format(etype, sigma, order, sigma_noise)
     with open('launch.sh', 'w') as file:
         file.write(sbatch_txt)
@@ -30,5 +30,5 @@ def launch_simulation(sigma, order, sigma_noise, etype):
 
 grid = pgrid()
 for p in grid:
-    launch_simulation(*p, 'FCN')
-    launch_simulation(*p, 'CNN')
+    launch_simulation('FCN', *p)
+    launch_simulation('CNN', *p)

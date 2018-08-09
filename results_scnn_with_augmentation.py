@@ -12,10 +12,17 @@ from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 from paper_scnn_params import get_params
 
+<<<<<<< HEAD
 experiment_type = 'FCN' # 'CNN'
 ename = '_'+experiment_type
+=======
 
-def single_experiment(sigma, order, sigma_noise):
+>>>>>>> origin/master
+
+
+def single_experiment(sigma, order, sigma_noise, experiment_type):
+
+    ename = '_'+experiment_type
 
     Nside = 1024
 
@@ -52,21 +59,34 @@ def single_experiment(sigma, order, sigma_noise):
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
-        sigma = int(sys.argv[1])
-        order = int(sys.argv[2])
-        sigma_noise = float(sys.argv[3])
+        experiment_type = sys.argv[1]
+    else:
+        experiment_type = 'FCN' # 'CNN'
+
+    if len(sys.argv) > 2:
+        sigma = int(sys.argv[2])
+        order = int(sys.argv[3])
+        sigma_noise = float(sys.argv[4])
         grid = [(sigma, order, sigma_noise)]
     else:
         grid = pgrid()
+
+    
+
+    ename = '_'+experiment_type
 
     path = 'results/scnn/'
     os.makedirs(path, exist_ok=True)
 
     for sigma, order, sigma_noise in grid:
         print('Launch experiment for sigma={}, order={}, noise={}'.format(sigma, order, sigma_noise))
+<<<<<<< HEAD
         # avoid all jobs starting at the same time
         time.sleep(np.random.rand()*100)
         res = single_experiment(sigma, order, sigma_noise)
+=======
+        res = single_experiment(sigma, order, sigma_noise, experiment_type)
+>>>>>>> origin/master
         filepath = os.path.join(path, 'scnn_results_list_sigma{}{}'.format(sigma,ename))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):

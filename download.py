@@ -4,7 +4,8 @@ from scnn import utils
 import os
 
 if __name__ == '__main__':
-
+    # The dataset is availlable at https://doi.org/10.5281/zenodo.1303272
+    
     url_testing = 'https://zenodo.org/record/1303272/files/testing.zip?download=1'
     url_training = 'https://zenodo.org/record/1303272/files/training.zip?download=1'
     url_readme = 'https://zenodo.org/record/1303272/files/README.md?download=1'

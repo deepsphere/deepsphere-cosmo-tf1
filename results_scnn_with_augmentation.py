@@ -11,7 +11,9 @@ from scnn.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 from paper_scnn_params import get_params
 
-ename = '_fin'
+experiment_type = 'FCN' # 'CNN'
+
+ename = '_'+experiment_type
 
 def single_experiment(sigma, order, sigma_noise):
 
@@ -29,7 +31,7 @@ def single_experiment(sigma, order, sigma_noise):
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
 
-    params = get_params(training.N, EXP_NAME, order, Nside)
+    params = get_params(training.N, EXP_NAME, order, Nside, experiment_type)
     model = models.scnn(**params)
 
     # Cleanup before running again.

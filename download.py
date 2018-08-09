@@ -7,10 +7,15 @@ if __name__ == '__main__':
 
     url_testing = 'https://zenodo.org/record/1303272/files/testing.zip?download=1'
     url_training = 'https://zenodo.org/record/1303272/files/training.zip?download=1'
-    url_readme = '...'
+    url_readme = 'https://zenodo.org/record/1303272/files/README.md?download=1'
 
     md5_testing = '62757429ebb0a257c3d54775e08c9512'
     md5_training = '6b0f5072481397fa8842ef99524b5482'
+    md5_readme = '6f52f6c2d8270907e7bc6bb852666b6f'
+
+    print('Download README')
+    utils.download(url_readme, 'data')
+    assert (utils.check_md5('data/README.md', md5_readme))
 
     print('Download training set')
     utils.download(url_training, 'data')

@@ -60,7 +60,7 @@ In order to reproduce the results of the paper, you need to ask access to the da
 [url_cosmo]: https://www.cosmology.ethz.ch
 
 Then, the steps to reproduce the paper results are simple, while they might take a while.
-1. Download the [dataset][dataset_doi]
+1. Download the dataset
 ```
 python download.py
 ```
@@ -79,7 +79,6 @@ The results will be saved in the folder `results`. Please not that the result of
 
 The scripts `results_deepsphere_with_augmentation.py` and `python results_psd_with_augmentation.py` can be executed in parallel in a HPC setting. You can adapt the script `euler_launcher.py` and `cscs_launcher.py` for your particular setting. Please contact the authors if you are stuck in trying to do so.
 
-[dataset_doi]:https://doi.org/10.5281/zenodo.1303272
 
 ## License & co
 

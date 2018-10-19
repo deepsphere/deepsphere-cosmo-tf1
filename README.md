@@ -1,4 +1,4 @@
-# Spherical convolutional neural network
+# DeepSphere: A Spherical convolutional neural network
 
 The code in this repository implements an efficient generalization of the
 popular Convolutional Neural Networks (CNNs) to a sphere.
@@ -37,7 +37,7 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 
 ## Using the model
 
-To use HealPixNet on your data, you need:
+To use DeepSphere on your data, you need:
 
 1. a data matrix where each row is a sample and each column is a feature,
 2. a target vector,
@@ -46,7 +46,7 @@ See the [usage notebook][usage] for a simple example with fabricated data.
 Please get in touch if you are unsure about applying the model to a different
 setting.
 
-[usage]: https://github.com/SwissDataScienceCenter/healpixnet/blob/master/demo.ipynb
+[usage]: https://github.com/SwissDataScienceCenter/deepsphere/blob/master/whole_sphere.ipynb
 
 ## Experiments
 
@@ -54,12 +54,12 @@ Below are some notebooks which contain various experiments:
 1. Classification of data on the whole sphere
 1. Classification of data from part of the sphere (with noise)
 
-The results we reported in the paper are recorded here:
-1. TODO: link to notebook
-1. TODO: link to notebook
-
 ## Reproducing the results of the paper
-The steps to reproduce the paper results are simple, while they might take a while.
+In order to reproduce the results of the paper, you need to ask access to the data to the [cosmology research group of ETHZ][url_cosmo].
+
+[url_cosmo]: https://www.cosmology.ethz.ch
+
+Then, the steps to reproduce the paper results are simple, while they might take a while.
 1. Download the [dataset][dataset_doi]
 ```
 python download.py
@@ -88,9 +88,9 @@ Please cite our [paper][arXiv] if you use it.
 
 ```
 @article{,
-  title={TBD},
-  author={Perraudin, Nathanaël},
-  journal={Astronomy and Computing},
+  title={DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications},
+  author={Perraudin, Nathanaël and Defferrard, Michaël and Kacprzak, Tomasz and Sgier, Raphael},
+  journal={Arxiv},
   year={2018}
 }
 ```

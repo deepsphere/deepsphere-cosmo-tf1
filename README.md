@@ -52,7 +52,10 @@ setting.
 
 Below are some notebooks which contain various experiments:
 1. Classification of data on the whole sphere
+An executed version is available [here][https://github.com/SwissDataScienceCenter/deepsphere/blob/results/whole_sphere.ipynb]
+
 1. Classification of data from part of the sphere (with noise)
+An executed version is available [here][https://github.com/SwissDataScienceCenter/deepsphere/blob/results/part_sphere.ipynb]
 
 ## Reproducing the results of the paper
 In order to reproduce the results of the paper, you need to ask access to the data to the [cosmology research group of ETHZ][url_cosmo].

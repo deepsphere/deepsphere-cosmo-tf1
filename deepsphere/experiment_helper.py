@@ -151,7 +151,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
 
        This function take the training and testing data and prepares it for the different problems.
        - For the svm classifier: it computes the features and augments the dataset.
-       - For the scnn: it simply return the raw data and create the validation set (add the noise)
+       - For the deepsphere: it simply return the raw data and create the validation set (add the noise)
 
        Input
        -----

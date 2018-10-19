@@ -1,6 +1,6 @@
 # Module to download the dataset.
 
-from scnn import utils
+from deepsphere import utils
 import os
 
 if __name__ == '__main__':

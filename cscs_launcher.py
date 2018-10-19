@@ -6,18 +6,18 @@ txtfile = '''#!/bin/bash -l
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --constraint=gpu
-#SBATCH --output=scnn-{0}-{1}-{2}-{3}-%j.log
-#SBATCH --error=scnn-{0}-{1}-{2}-{3}-%j.log
+#SBATCH --output=deepsphere-{0}-{1}-{2}-{3}-%j.log
+#SBATCH --error=deepsphere-{0}-{1}-{2}-{3}-%j.log
 
 module load daint-gpu
 module load cray-python
 module load TensorFlow/1.7.0-CrayGNU-17.12-cuda-8.0-python3
 
-source $HOME/scnn/bin/activate
+source $HOME/deepsphere/bin/activate
 
 
-cd $SCRATCH/scnn/
-srun python results_scnn_with_augmentation.py {0} {1} {2} {3}
+cd $SCRATCH/deepsphere/
+srun python results_deepsphere_with_augmentation.py {0} {1} {2} {3}
 '''
 
 

@@ -206,7 +206,7 @@ def build_laplacians(nsides, indexes=None, use_4=False):
 def nside2indexes(nsides, order):
     """Return list of indexes from nside given a specific order.
 
-    This function return the necessary indexes for a scnn when
+    This function return the necessary indexes for a deepsphere when
     only a part of the sphere is considered.
 
     Arguments

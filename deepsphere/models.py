@@ -742,7 +742,7 @@ class cgcnn(base_model):
         return ax
 
 
-class scnn(cgcnn):
+class deepsphere(cgcnn):
     """
     Spherical convolutional neural network based on graph CNN
 
@@ -790,7 +790,7 @@ class scnn(cgcnn):
         L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4)
         self.nsides = nsides
         self.pygsp_graphs = [None] * len(nsides)
-        super(scnn, self).__init__(L=L, p=p, **kwargs)
+        super(deepsphere, self).__init__(L=L, p=p, **kwargs)
 
 
     def get_gsp_filters(self, layer,  ind_in=None, ind_out=None):

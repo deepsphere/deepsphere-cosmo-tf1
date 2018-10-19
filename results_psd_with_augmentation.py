@@ -3,7 +3,7 @@
 import os
 import sys
 import numpy as np
-from scnn import experiment_helper
+from deepsphere import experiment_helper
 from grid import pgrid
 
 

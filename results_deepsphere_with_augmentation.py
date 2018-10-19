@@ -7,11 +7,10 @@ import sys
 import numpy as np
 import time
 
-from scnn import models, utils, experiment_helper
-from scnn.data import LabeledDatasetWithNoise, LabeledDataset
+from deepsphere import models, experiment_helper
+from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
-from paper_scnn_params import get_params
-
+from paper_deepsphere_params import get_params
 
 
 def single_experiment(sigma, order, sigma_noise, experiment_type):
@@ -33,7 +32,7 @@ def single_experiment(sigma, order, sigma_noise, experiment_type):
     validation = LabeledDataset(features_validation, labels_validation)
 
     params = get_params(training.N, EXP_NAME, order, Nside, experiment_type)
-    model = models.scnn(**params)
+    model = models.deepsphere(**params)
 
     # Cleanup before running again.
     shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
@@ -65,11 +64,9 @@ if __name__ == '__main__':
     else:
         grid = pgrid()
 
-    
-
     ename = '_'+experiment_type
 
-    path = 'results/scnn/'
+    path = 'results/deepsphere/'
     os.makedirs(path, exist_ok=True)
 
     for sigma, order, sigma_noise in grid:
@@ -77,7 +74,7 @@ if __name__ == '__main__':
         # avoid all jobs starting at the same time
         time.sleep(np.random.rand()*100)
         res = single_experiment(sigma, order, sigma_noise, experiment_type)
-        filepath = os.path.join(path, 'scnn_results_list_sigma{}{}'.format(sigma,ename))
+        filepath = os.path.join(path, 'deepsphere_results_list_sigma{}{}'.format(sigma,ename))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

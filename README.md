@@ -13,8 +13,8 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/SwissDataScienceCenter/scnn.git
-   cd scnn
+   git clone https://github.com/SwissDataScienceCenter/deepsphere.git
+   cd deepsphere
    ```
 
 2. Install the dependencies.
@@ -70,14 +70,14 @@ python preprocess.py
 ```
 3. Run the experiemnts
 ```
-python results_scnn_with_augmentation.py
+python results_deepsphere_with_augmentation.py
 python results_histogram_with_augmentation.py
 python results_psd_with_augmentation.py FCN
 python results_psd_with_augmentation.py CNN
 ```
 The results will be saved in the folder `results`. Please not that the result of the spherical CNN may varies from one run to the oter. So you may want to check the tensorboard summaries and verify that convergence is attained. For some experiments, the network needs a large amount of epoch to stabilize.
 
-The scripts `results_scnn_with_augmentation.py` and `python results_psd_with_augmentation.py` can be executed in parallel in a HPC setting. You can adapt the script `euler_launcher.py` and `cscs_launcher.py` for your particular setting. Please contact the authors if you are stuck in trying to do so.
+The scripts `results_deepsphere_with_augmentation.py` and `python results_psd_with_augmentation.py` can be executed in parallel in a HPC setting. You can adapt the script `euler_launcher.py` and `cscs_launcher.py` for your particular setting. Please contact the authors if you are stuck in trying to do so.
 
 [dataset_doi]:https://doi.org/10.5281/zenodo.1303272
 

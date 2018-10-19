@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-from scnn import utils
+from deepsphere import utils
 
 
 def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True):

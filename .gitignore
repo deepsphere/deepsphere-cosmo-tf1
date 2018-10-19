@@ -5,5 +5,4 @@ __pycache__
 .DS_Store
 figures/*
 results/*
-old_files/*
 *.pyc

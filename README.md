@@ -13,7 +13,7 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/SwissDataScienceCenter/deepsphere.git
+   git clone https://github.com/SwissDataScienceCenter/DeepSphere.git
    cd deepsphere
    ```
 
@@ -46,7 +46,7 @@ See the [usage notebook][usage] for a simple example with fabricated data.
 Please get in touch if you are unsure about applying the model to a different
 setting.
 
-[usage]: https://github.com/SwissDataScienceCenter/deepsphere/blob/master/whole_sphere.ipynb
+[usage]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/whole_sphere.ipynb
 
 ## Experiments
 
@@ -54,14 +54,14 @@ Below are some notebooks which contain various experiments:
 1. Classification of data on the whole sphere ([whole_sphere.ipynb][whole_sphere]).
 An executed version is available [here][whole_sphere_exec]
 
-[whole_sphere]: https://github.com/SwissDataScienceCenter/deepsphere/blob/master/whole_sphere.ipynb
-[whole_sphere_exec]: https://github.com/SwissDataScienceCenter/deepsphere/blob/results/whole_sphere.ipynb
+[whole_sphere]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/whole_sphere.ipynb
+[whole_sphere_exec]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/results/whole_sphere.ipynb
 
 1. Classification of data from part of the sphere with noise ([part_sphere.ipynb][part_sphere]). 
 an executed version is available [here][part_sphere_exec]
 
-[part_sphere]: https://github.com/SwissDataScienceCenter/deepsphere/blob/master/part_sphere.ipynb
-[part_sphere_exec]: https://github.com/SwissDataScienceCenter/deepsphere/blob/results/part_sphere.ipynb
+[part_sphere]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/part_sphere.ipynb
+[part_sphere_exec]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/results/part_sphere.ipynb
 
 ## Reproducing the results of the paper
 In order to reproduce the results of the paper, you need to ask access to the data to the [cosmology research group of ETHZ][url_cosmo].

@@ -1,8 +1,15 @@
-__pycache__
+.DS_Store
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+
+# IPython checkpoints
+.ipynb_checkpoints/
+
+# TensorFlow checkpoints and summaries.
 /checkpoints/
 /summaries/
-.ipynb_checkpoints
-.DS_Store
-figures/*
-results/*
-*.pyc
+
+# Figures are produced by paper_plots.ipynb
+/figures/

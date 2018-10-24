@@ -12,7 +12,7 @@ healpy==1.11.0
 git+https://github.com/epfl-lts2/pygsp.git@717ceb58de936c2973f4447694cda56290552b3f#egg=PyGSP
 tqdm==4.19.6
 
-jupyter==1.0.0
+notebook==5.4.0
 
 # Dependencies
 
@@ -29,12 +29,10 @@ html5lib==0.9999999
 ipykernel==4.8.2
 ipython==6.2.1
 ipython-genutils==0.2.0
-ipywidgets==7.1.2
 jedi==0.11.1
 Jinja2==2.10
 jsonschema==2.6.0
 jupyter-client==5.2.2
-jupyter-console==5.2.0
 jupyter-core==4.4.0
 kiwisolver==1.0.1
 lxml==4.2.5
@@ -43,7 +41,6 @@ MarkupSafe==1.0
 mistune==0.8.3
 nbconvert==5.3.1
 nbformat==4.4.0
-notebook==5.4.0
 pandocfilters==1.4.2
 parso==0.1.1
 pexpect==4.4.0
@@ -56,7 +53,6 @@ pyparsing==2.2.0
 python-dateutil==2.6.1
 pytz==2018.3
 pyzmq==17.0.0
-qtconsole==4.3.1
 Send2Trash==1.5.0
 simplegeneric==0.8.1
 six==1.11.0
@@ -68,4 +64,3 @@ tornado==5.0
 traitlets==4.3.2
 wcwidth==0.1.7
 Werkzeug==0.14.1
-widgetsnbextension==3.1.4

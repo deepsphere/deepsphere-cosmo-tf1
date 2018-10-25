@@ -209,8 +209,8 @@ def nside2indexes(nsides, order):
     This function return the necessary indexes for a deepsphere when
     only a part of the sphere is considered.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     nsides : list of nside for the desired scale
     order  : parameter specifying the size of the sphere part
     """

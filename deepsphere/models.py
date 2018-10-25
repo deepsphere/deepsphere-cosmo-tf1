@@ -1,5 +1,5 @@
 """
-This module defines the graph convolutional neural network.
+This module implements the graph convolutional neural network.
 
 Most of the code is based on https://github.com/mdeff/cnn_graph/.
 """
@@ -700,8 +700,8 @@ class cgcnn(base_model):
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
         """Return the Chebyshev filter coefficients of a layer.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)
@@ -724,8 +724,8 @@ class cgcnn(base_model):
     def plot_chebyshev_coeffs(self, layer, ind_in=None, ind_out=None,  ax=None, title='Chebyshev coefficients - layer {}'):
         """Plot the Chebyshev coefficients of a layer.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)
@@ -792,12 +792,11 @@ class deepsphere(cgcnn):
         self.pygsp_graphs = [None] * len(nsides)
         super(deepsphere, self).__init__(L=L, p=p, **kwargs)
 
-
     def get_gsp_filters(self, layer,  ind_in=None, ind_out=None):
         """Get the filter as a pygsp format
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)
@@ -811,12 +810,11 @@ class deepsphere(cgcnn):
             self.pygsp_graphs[layer-1].estimate_lmax()
         return filters.Chebyshev(self.pygsp_graphs[layer-1], trained_weights)
 
-
     def plot_filters_spectral(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
         """Plot the filter of a special layer in the spectral domain.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)
@@ -835,8 +833,8 @@ class deepsphere(cgcnn):
     def plot_filters_section(self, layer,  ind_in=None, ind_out=None, ax=None, **kwargs):
         """Plot the filter section on the sphere
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)
@@ -851,8 +849,8 @@ class deepsphere(cgcnn):
     def plot_filters_gnomonic(self, layer,  ind_in=None, ind_out=None, **kwargs):
         """Plot the filter localization on gnomonic view.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         layer : index of the layer (starts with 1).
         ind_in : index(es) of the input filter(s) (default None, all the filters)
         ind_out : index(es) of the output filter(s) (default None, all the filters)

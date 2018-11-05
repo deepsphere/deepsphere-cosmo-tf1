@@ -102,6 +102,5 @@ Please cite our [paper][arXiv] if you use it.
   year={2018}
 }
 ```
-TODO: link to arxiv
 
 [arXiv]:https://arxiv.org/abs/1810.12186

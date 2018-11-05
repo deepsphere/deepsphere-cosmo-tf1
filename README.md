@@ -95,13 +95,13 @@ The content of this repository is released under the terms of the [MIT license](
 Please cite our [paper][arXiv] if you use it.
 
 ```
-@article{,
+@article{perraudin2018deepsphere,
   title={DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications},
-  author={Perraudin, Nathanaël and Defferrard, Michaël and Kacprzak, Tomasz and Sgier, Raphael},
-  journal={Arxiv},
+  author={Perraudin, Nathana{\"e}l and Defferrard, Micha{\"e}l and Kacprzak, Tomasz and Sgier, Raphael},
+  journal={arXiv preprint arXiv:1810.12186},
   year={2018}
 }
 ```
 TODO: link to arxiv
 
-[arXiv]:https://...
+[arXiv]:https://arxiv.org/abs/1810.12186

@@ -66,7 +66,7 @@ an executed version is available [here][part_sphere_exec]
 ## Reproducing the results of the paper
 In order to reproduce the results of the paper, you need to ask access to the data to the [cosmology research group of ETHZ][url_cosmo].
 
-[url_cosmo]: https://www.cosmology.ethz.ch
+[url_cosmo]: http://www.cosmology.ethz.ch
 
 Then, the steps to reproduce the paper results are simple, while they might take a while.
 1. Download the dataset
@@ -91,7 +91,7 @@ The scripts `results_deepsphere_with_augmentation.py` and `python results_psd_wi
 
 ## License & co
 
-The content of this repository is released under the terms of the [MIT license](LICENSE.txt).
+The content of this repository is released under the terms of the [MIT license](LICENCE.txt).
 Please cite our [paper][arXiv] if you use it.
 
 ```

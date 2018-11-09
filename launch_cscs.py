@@ -25,7 +25,7 @@ module load TensorFlow/1.7.0-CrayGNU-17.12-cuda-8.0-python3
 source $HOME/deepsphere/bin/activate
 
 cd $SCRATCH/deepsphere/
-srun python results_deepsphere_with_augmentation.py {0} {1} {2} {3}
+srun python experiments_deepsphere.py {0} {1} {2} {3}
 '''
 
 

@@ -1,18 +1,24 @@
-# Module to download the dataset.
+#!/usr/bin/env python3
 
-from deepsphere import utils
+"""
+Script to download the main cosmological dataset.
+The dataset is availlable at https://doi.org/10.5281/zenodo.1303272.
+"""
+
 import os
 
-if __name__ == '__main__':
-    # The dataset is availlable at https://doi.org/10.5281/zenodo.1303272
-    
-    url_testing = 'https://zenodo.org/record/1303272/files/testing.zip?download=1'
-    url_training = 'https://zenodo.org/record/1303272/files/training.zip?download=1'
-    url_readme = 'https://zenodo.org/record/1303272/files/README.md?download=1'
+from deepsphere import utils
 
-    md5_testing = '62757429ebb0a257c3d54775e08c9512'
-    md5_training = '6b0f5072481397fa8842ef99524b5482'
+
+if __name__ == '__main__':
+
+    url_readme = 'https://zenodo.org/record/1303272/files/README.md?download=1'
+    url_training = 'https://zenodo.org/record/1303272/files/training.zip?download=1'
+    url_testing = 'https://zenodo.org/record/1303272/files/testing.zip?download=1'
+
     md5_readme = '6f52f6c2d8270907e7bc6bb852666b6f'
+    md5_training = '6b0f5072481397fa8842ef99524b5482'
+    md5_testing = '62757429ebb0a257c3d54775e08c9512'
 
     print('Download README')
     utils.download(url_readme, 'data')

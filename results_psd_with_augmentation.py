@@ -1,11 +1,18 @@
+#!/usr/bin/env python3
 # coding: utf-8
+
+"""
+Script to run the baseline experiment:
+SVM classification with power spectral densities (PSD) features.
+"""
 
 import os
 import sys
+
 import numpy as np
+
 from deepsphere import experiment_helper
 from grid import pgrid
-
 
 
 def single_experiment(sigma, order, sigma_noise, path):

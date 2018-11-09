@@ -1,5 +1,14 @@
+#!/usr/bin/env python3
+
+"""
+Script to run experiments on the Swiss National Supercomputing Centre (CSCS).
+https://www.cscs.ch/
+"""
+
 import os
+
 from grid import pgrid
+
 
 txtfile = '''#!/bin/bash -l
 #SBATCH --time=6:00:00
@@ -15,7 +24,6 @@ module load TensorFlow/1.7.0-CrayGNU-17.12-cuda-8.0-python3
 
 source $HOME/deepsphere/bin/activate
 
-
 cd $SCRATCH/deepsphere/
 srun python results_deepsphere_with_augmentation.py {0} {1} {2} {3}
 '''
@@ -28,7 +36,10 @@ def launch_simulation(etype, sigma, order, sigma_noise):
     os.system("sbatch launch.sh")
     os.remove('launch.sh')
 
-grid = pgrid()
-for p in grid:
-    launch_simulation('FCN', *p)
-    launch_simulation('CNN', *p)
+
+if __name__ == '__main__':
+
+    grid = pgrid()
+    for p in grid:
+        launch_simulation('FCN', *p)
+        launch_simulation('CNN', *p)

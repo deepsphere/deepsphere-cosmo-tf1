@@ -1,4 +1,11 @@
+#!/usr/bin/env python3
 # coding: utf-8
+
+"""
+Script to run the DeepSphere experiment.
+Both the fully convolutional (FCN) and the classic (CNN) architecture variants
+are supported.
+"""
 
 import os
 import shutil

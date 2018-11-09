@@ -1,4 +1,7 @@
+"""Matrix / grid of parameters to be run in experiments."""
+
 import collections
+
 
 def pgrid():
     """Return the grid of parameter for the simulations."""

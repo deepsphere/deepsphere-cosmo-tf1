@@ -17,7 +17,7 @@ import time
 from deepsphere import models, experiment_helper
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
-from paper_deepsphere_params import get_params
+import hyperparameters
 
 
 def single_experiment(sigma, order, sigma_noise, experiment_type):
@@ -38,7 +38,7 @@ def single_experiment(sigma, order, sigma_noise, experiment_type):
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
 
-    params = get_params(training.N, EXP_NAME, order, Nside, experiment_type)
+    params = hyperparameters.get_params(training.N, EXP_NAME, order, Nside, experiment_type)
     model = models.deepsphere(**params)
 
     # Cleanup before running again.

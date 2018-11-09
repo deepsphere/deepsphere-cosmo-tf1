@@ -12,7 +12,6 @@ import numpy as np
 from scipy import sparse
 import matplotlib.pyplot as plt
 import healpy as hp
-import tensorflow as tf
 
 
 if sys.version_info[0] > 2:
@@ -421,6 +420,7 @@ def test_learning_rates(params, ntrain, lr_min=1e-6, lr_max=1e-1, num_epochs=20,
     validation loss and choosing the largest value for which the loss
     still decreases.
     """
+    import tensorflow as tf
 
     params['dir_name'] = 'lr_finder'
     params['num_epochs'] = num_epochs

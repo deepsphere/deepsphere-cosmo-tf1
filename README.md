@@ -1,20 +1,39 @@
-# DeepSphere: A Spherical convolutional neural network
+# DeepSphere: a spherical convolutional neural network
 
-The code in this repository implements an efficient generalization of the
-popular Convolutional Neural Networks (CNNs) to a sphere.
+[Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff], Tomasz Kacprzak, Raphael Sgier
 
-The implementation is based on [convolutional neural networks on
-graphs][gcnn_paper], as implemented [here][gcnn_code].
+[nath]: https://perraudin.info
+[mdeff]: http://deff.ch
+
+The code in this repository implements a generalization of Convolutional Neural Networks (CNNs) to the sphere.
+We here model the discretised sphere as a graph of connected pixels.
+The resulting convolution is more efficient (especially when data doesn't span the whole sphere) and mostly equivariant to rotation (small distortions are due to the non-existence of a regular sampling of the sphere).
+The pooling strategy exploits a hierarchical pixelisation of the sphere (HEALPix) to analyse the data at multiple scales.
+The graph neural network model is based on [ChebNet][gcnn_paper] and its [TensorFlow implementation][gcnn_code].
+
+**blog post**: [DeepSphere: a neural network architecture for spherical data][blog]
+
+**paper**: [DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications][paper]
+
+[blog]: https://datascience.ch/deepsphere-a-neural-network-architecture-for-spherical-data
+[paper]: https://arxiv.org/abs/1810.12186
 
 [gcnn_paper]: https://arxiv.org/abs/1606.09375
 [gcnn_code]: https://github.com/mdeff/cnn_graph/
 
 ## Installation
 
+[![Binder](https://mybinder.org/badge.svg)][binder_lab]
+&nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
+
+[binder_lab]: https://mybinder.org/v2/gh/SwissDataScienceCenter/DeepSphere/master?urlpath=lab
+
+For a local installation, follow the below instructions.
+
 1. Clone this repository.
    ```sh
    git clone https://github.com/SwissDataScienceCenter/DeepSphere.git
-   cd deepsphere
+   cd DeepSphere
    ```
 
 2. Install the dependencies.
@@ -26,81 +45,84 @@ graphs][gcnn_paper], as implemented [here][gcnn_code].
    `tensorflow==1.6.0` line in `requirements.txt` and uncomment the
    `tensorflow-gpu==1.6.0` line.
 
-   **Note**: The code has been developed and tested with Python 3.5 and 3.6. It
-   should work on Python 2.7 with `requirements_py27.txt`. Please send a PR if
-   you encounter an issue.
+   **Note**: the code has been developed and tested with Python 3.5 and 3.6.
+   It should work on Python 2.7 with `requirements_py27.txt`.
+   Please send a PR if you encounter an issue.
 
 3. Play with the Jupyter notebooks.
    ```sh
    jupyter notebook
    ```
 
-## Using the model
+## Notebooks
 
-To use DeepSphere on your data, you need:
+The below notebooks contain examples and experiments to play with the model.
+Look at the first two if you want to use the model with your own data.
 
-1. a data matrix where each row is a sample and each column is a feature,
-2. a target vector,
+1. [Classification of data on the whole sphere.][whole_sphere]
+   The easiest example to run if you want to play with the model.
+1. [Classification of data from part of the sphere with noise.][part_sphere]
+   That is the main experiment carried on in the paper (with one configuration of resolution and noise).
+   It requires private data, see below.
+1. [Spherical convolution using a graph to represent the sphere.][spherical_convolution]
+   Learn what is the convolution on a graph, and how it works on the sphere.
+   Useful to learn how the model works.
+1. [Comparison of the spherical harmonics with the eigenvectors of the graph Laplacian.][spherical_vs_graph]
+   Get a taste of the difference between the graph representation and the analytic sphere.
 
-See the [usage notebook][usage] for a simple example with fabricated data.
-Please get in touch if you are unsure about applying the model to a different
-setting.
-
-[usage]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/whole_sphere.ipynb
-
-## Experiments
-
-Below are some notebooks which contain various experiments:
-1. Classification of data on the whole sphere ([whole_sphere.ipynb][whole_sphere]).
-An executed version is available [here][whole_sphere_exec]
-
-[whole_sphere]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/whole_sphere.ipynb
-[whole_sphere_exec]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/results/whole_sphere.ipynb
-
-1. Classification of data from part of the sphere with noise ([part_sphere.ipynb][part_sphere]). 
-an executed version is available [here][part_sphere_exec]
-
-[part_sphere]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/master/part_sphere.ipynb
-[part_sphere_exec]: https://github.com/SwissDataScienceCenter/DeepSphere/blob/results/part_sphere.ipynb
+[whole_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_whole_sphere.ipynb
+[part_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_part_sphere.ipynb
+[spherical_convolution]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_convolution.ipynb
+[spherical_vs_graph]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_vs_graph.ipynb
 
 ## Reproducing the results of the paper
-In order to reproduce the results of the paper, you need to ask access to the data to the [cosmology research group of ETHZ][url_cosmo].
 
-[url_cosmo]: http://www.cosmology.ethz.ch
+[cosmo_eth]: http://www.cosmology.ethz.ch
 
-Then, the steps to reproduce the paper results are simple, while they might take a while.
-1. Download the dataset
-```
-python download.py
-```
-2. Preprocess the dataset
-```
-python preprocess.py
-```
-3. Run the experiemnts
-```
-python results_deepsphere_with_augmentation.py
-python results_histogram_with_augmentation.py
-python results_psd_with_augmentation.py FCN
-python results_psd_with_augmentation.py CNN
-```
-The results will be saved in the folder `results`. Please not that the result of the spherical CNN may varies from one run to the oter. So you may want to check the tensorboard summaries and verify that convergence is attained. For some experiments, the network needs a large amount of epoch to stabilize.
+Follow the below steps to reproduce the paper's results.
+While the instructions are simple, the experiments will take a while.
 
-The scripts `results_deepsphere_with_augmentation.py` and `python results_psd_with_augmentation.py` can be executed in parallel in a HPC setting. You can adapt the script `euler_launcher.py` and `cscs_launcher.py` for your particular setting. Please contact the authors if you are stuck in trying to do so.
+1. Get the main dataset.
+   You need to ask the [ETHZ cosmology research group][cosmo_eth] for a copy of the data.
 
+2. Preprocess the dataset.
+   ```
+   python data_preprocess.py
+   ```
+
+3. Run the experiments.
+   The first corresponds to the fully convolutional architecture variant of DeepSphere.
+   The second corresponds to the classic CNN architecture variant.
+   The last two are the baselines: an SVM that classifies histograms and power spectral densities.
+   ```
+   python experiments_deepsphere.py FCN
+   python experiments_deepsphere.py CNN
+   python experiments_histogram.py
+   python experiments_psd.py
+   ```
+
+The results will be saved in the [`results`](results) folder.
+Note that results may vary from one run to the other.
+You may want to check summaries with tensorboard to verify that training converges.
+For some experiments, the network needs a large number of epochs to stabilize.
+
+The `experiments_deepsphere.py` and `experiments_psd.py` scripts can be executed in parallel in a HPC setting.
+You can adapt the `launch_euler.py` and `launch_cscs.py` scripts to your particular setting.
+
+Once the results are computed (or using those stored in the repository), you can reproduce the paper's figures with the `figure*` notebooks.
+The results will be saved in the [`figures`](figures) folder.
 
 ## License & co
 
 The content of this repository is released under the terms of the [MIT license](LICENCE.txt).
-Please cite our [paper][arXiv] if you use it.
+Please cite our [paper] if you use it.
 
 ```
-@article{perraudin2018deepsphere,
-  title={DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications},
-  author={Perraudin, Nathana{\"e}l and Defferrard, Micha{\"e}l and Kacprzak, Tomasz and Sgier, Raphael},
-  journal={arXiv preprint arXiv:1810.12186},
-  year={2018}
+@article{,
+  title = {DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications},
+  author = {Perraudin, Nathana\"el and Defferrard, Micha\"el and Kacprzak, Tomasz and Sgier, Raphael},
+  journal = {arXiv},
+  year = {2018},
+  url = {https://arxiv.org/abs/1810.12186},
 }
 ```
-
-[arXiv]:https://arxiv.org/abs/1810.12186

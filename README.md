@@ -26,7 +26,7 @@ The graph neural network model is based on [ChebNet][gcnn_paper] and its [Tensor
 [![Binder](https://mybinder.org/badge.svg)][binder_lab]
 &nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
 
-[binder_lab]: https://mybinder.org/v2/gh/SwissDataScienceCenter/DeepSphere/master?urlpath=lab
+[binder_lab]: https://mybinder.org/v2/gh/SwissDataScienceCenter/DeepSphere/outputs?urlpath=lab
 
 For a local installation, follow the below instructions.
 

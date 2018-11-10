@@ -10,6 +10,7 @@ We here model the discretised sphere as a graph of connected pixels.
 The resulting convolution is more efficient (especially when data doesn't span the whole sphere) and mostly equivariant to rotation (small distortions are due to the non-existence of a regular sampling of the sphere).
 The pooling strategy exploits a hierarchical pixelisation of the sphere (HEALPix) to analyse the data at multiple scales.
 The graph neural network model is based on [ChebNet][gcnn_paper] and its [TensorFlow implementation][gcnn_code].
+The performance of DeepSphere is demonstrated on a discrimination problem: the classification of convergence maps into two cosmological model classes.
 
 **blog post**: [DeepSphere: a neural network architecture for spherical data][blog]
 

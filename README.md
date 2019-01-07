@@ -84,7 +84,9 @@ Follow the below steps to reproduce the paper's results.
 While the instructions are simple, the experiments will take a while.
 
 1. Get the main dataset.
-   You need to ask the [ETHZ cosmology research group][cosmo_eth] for a copy of the data.
+   You need to ask the [ETHZ cosmology research group][cosmo_eth] for a copy of the data. The simplest option is to request access on Zenodo at https://zenodo.org/record/1303272
+
+   Note, that it requires writing a description of the project which the dataset is intended to be used. 
 
 2. Preprocess the dataset.
    ```

@@ -83,17 +83,17 @@ Look at the first two if you want to use the model with your own data.
 Follow the below steps to reproduce the paper's results.
 While the instructions are simple, the experiments will take a while.
 
-1. Get the main dataset.
-   You need to ask the [ETHZ cosmology research group][cosmo_eth] for a copy of the data. The simplest option is to request access on Zenodo at https://zenodo.org/record/1303272
+1. **Get the main dataset**.
+   You need to ask the [ETHZ cosmology research group][cosmo_eth] for a copy of the data.
+   The simplest option is to request access on [Zenodo](https://zenodo.org/record/1303272).
+   You will have to write a description of the project for which the dataset is intended to be used.
 
-   Note, that it requires writing a description of the project which the dataset is intended to be used. 
-
-2. Preprocess the dataset.
+2. **Preprocess the dataset**.
    ```
    python data_preprocess.py
    ```
 
-3. Run the experiments.
+3. **Run the experiments**.
    The first corresponds to the fully convolutional architecture variant of DeepSphere.
    The second corresponds to the classic CNN architecture variant.
    The last two are the baselines: an SVM that classifies histograms and power spectral densities.

@@ -14,8 +14,8 @@ import sys
 import numpy as np
 import time
 
-from deepsphere import experiment_helper
 from deepsphere.cnn import Healpix2CNN, build_index
+from deepsphere import models, experiment_helper
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid
 import hyperparameters
@@ -50,9 +50,16 @@ def single_experiment(sigma, order, sigma_noise, experiment_type):
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
 
-    params = hyperparameters.get_params_CNN2D(training.N, EXP_NAME, order, Nside, experiment_type)
-    model = Healpix2CNN(**params)
+#     params = hyperparameters.get_params_CNN2D(training.N, EXP_NAME, order, Nside, experiment_type)
+#     model = Healpix2CNN(**params)
 
+    params = hyperparameters.get_params(training.N, EXP_NAME, order, Nside, experiment_type)
+    model = models.cnn2d(**params)
+
+    # Cleanup before running again.
+    shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
+    shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
+    
     model.fit(training, validation)
 
     error_validation = experiment_helper.model_error(model, features_validation, labels_validation)
@@ -81,7 +88,7 @@ if __name__ == '__main__':
 
     ename = '_'+experiment_type
 
-    path = 'results/deepsphere2dcnn/'
+    path = 'results/deepsphere_new_2dcnn/'
     os.makedirs(path, exist_ok=True)
 
     for sigma, order, sigma_noise in grid:

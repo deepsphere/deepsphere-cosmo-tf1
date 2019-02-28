@@ -50,7 +50,7 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['M'] = [128*order*order, 1024*order, 1024*order, n_classes]
         params['batch_norm_full'] = [True]*3
         params['input_shape'] = (Nside//order)**2
-    elif architecture == 'CNN-2d':
+    elif architecture == 'CNN-2d-big':
         params['F'] = params['F'][:-1]
         params['K'] = params['K'][:-1]
         params['batch_norm'] = params['batch_norm'][:-1]
@@ -66,14 +66,37 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
 
         params['input_shape'] = [1024//order, 1024//order]
 
-    elif architecture == 'FCN-2d':
+    elif architecture == 'FCN-2d-big':
         params['K'] = [[5,5]] * 6
         del params['indexes']
         del params['nsides']
         del params['conv']
         params['input_shape'] = [1024//order, 1024//order]
         params['p'] = [2, 2, 2, 2, 2, 1]
-        
+    elif architecture == 'CNN-2d':
+        params['F'] =  [8, 16, 32, 32, 16]
+        params['K'] = params['K'][:-1]
+        params['batch_norm'] = params['batch_norm'][:-1]
+        params['nsides'] = params['nsides'][:-1]
+        params['indexes'] = params['indexes'][:-1]
+        params['statistics'] = None
+        params['M'] = [n_classes]
+        params['K'] = [[5,5]] * 5
+        params['p'] = [2, 2, 2, 2, 2]
+        del params['indexes']
+        del params['nsides']
+        del params['conv']
+
+        params['input_shape'] = [1024//order, 1024//order]
+
+    elif architecture == 'FCN-2d':
+        params['F'] =  [8, 16, 32, 32, 16, 2]
+        params['K'] = [[5,5]] * 6
+        del params['indexes']
+        del params['nsides']
+        del params['conv']
+        params['input_shape'] = [1024//order, 1024//order]
+        params['p'] = [2, 2, 2, 2, 2, 1]
     elif architecture != "FCN":
         raise ValueError('Unknown architecture {}.'.format(architecture))
 

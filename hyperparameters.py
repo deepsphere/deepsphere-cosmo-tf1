@@ -28,6 +28,7 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
     nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
     params['nsides'] = nsides
     params['indexes'] = utils.nside2indexes(nsides, order)
+#     params['batch_norm_full'] = []
 
     if architecture == "CNN":
         # Replace the last graph convolution and global average pooling by a fully connected layer.
@@ -39,12 +40,52 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
         params['M'] = [n_classes]
+    elif architecture == 'FNN':
+        # Fully connected neural network. This is not working!
+        params['F'] = []
+        params['K'] = []
+        params['batch_norm'] = []
+        params['indexes'] = []
+        params['statistics'] = None
+        params['M'] = [128*order*order, 1024*order, 1024*order, n_classes]
+        params['batch_norm_full'] = [True]*3
+        params['input_shape'] = (Nside//order)**2
+    elif architecture == 'CNN-2d':
+        params['F'] = params['F'][:-1]
+        params['K'] = params['K'][:-1]
+        params['batch_norm'] = params['batch_norm'][:-1]
+        params['nsides'] = params['nsides'][:-1]
+        params['indexes'] = params['indexes'][:-1]
+        params['statistics'] = None
+        params['M'] = [n_classes]
+        params['K'] = [[5,5]] * 5
+        params['p'] = [2, 2, 2, 2, 2]
+        del params['indexes']
+        del params['nsides']
+        del params['conv']
+
+        params['input_shape'] = [1024//order, 1024//order]
+
+    elif architecture == 'FCN-2d':
+        params['K'] = [[5,5]] * 6
+        del params['indexes']
+        del params['nsides']
+        del params['conv']
+        params['input_shape'] = [1024//order, 1024//order]
+        params['p'] = [2, 2, 2, 2, 2, 1]
+        
     elif architecture != "FCN":
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
+
+    if architecture == 'FNN':
+        print('Use regularization new')
+        params['regularization'] = 10  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+        params['dropout'] = 1  # Percentage of neurons to keep.
+    
 
     # Training.
     params['num_epochs'] = 80  # Number of passes through the training data.
@@ -71,4 +112,61 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         lr = [params['scheduler'](step).eval(session=tf.Session()) for step in [0, n_steps]]
         print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(*lr))
 
+    return params
+
+
+def get_params_CNN2D(ntrain, EXP_NAME, order, Nside, architecture='FCN', verbose=True):
+    bn = True
+
+    params = dict()
+    params['net'] = dict()
+
+    if architecture == "CNN":
+        params['net']['full'] = [2]
+        params['net']['nfilter'] = [8, 16, 32, 32, 16]
+        params['net']['batch_norm'] = [bn, bn, bn, bn, bn]
+        params['net']['shape'] = [[5, 5], [5, 5], [5, 5], [5, 5], [5, 5]]
+        params['net']['stride'] = [2, 2, 2, 2, 2]
+        params['net']['statistics'] = None # 'mean', 'var', 'meanvar'
+    elif architecture == "FCN":
+        params['net']['full'] = []
+        params['net']['nfilter'] = [8, 16, 32, 32, 16, 2]
+        params['net']['batch_norm'] = [bn, bn, bn, bn, bn, bn]
+        params['net']['shape'] = [[5, 5], [5, 5], [5, 5], [5, 5], [5, 5], [5, 5]]
+        params['net']['stride'] = [2, 2, 2, 2, 2, 1]
+        params['net']['statistics'] = 'mean' # 'mean', 'var', 'meanvar'
+    elif architecture == "CNN-big":
+        params['net']['full'] = [2]
+        params['net']['nfilter'] = [16, 32, 64, 64, 64]
+        params['net']['batch_norm'] = [bn, bn, bn, bn, bn]
+        params['net']['shape'] = [[5, 5], [5, 5], [5, 5], [5, 5], [5, 5]]
+        params['net']['stride'] = [2, 2, 2, 2, 2]
+        params['net']['statistics'] = None # 'mean', 'var', 'meanvar'
+    elif architecture == "FCN-big":
+        params['net']['full'] = []
+        params['net']['nfilter'] = [16, 32, 64, 64, 64, 2]
+        params['net']['batch_norm'] = [bn, bn, bn, bn, bn, bn]
+        params['net']['shape'] = [[5, 5], [5, 5], [5, 5], [5, 5], [5, 5], [5, 5]]
+        params['net']['stride'] = [2, 2, 2, 2, 2, 1]
+        params['net']['statistics'] = 'mean' # 'mean', 'var', 'meanvar'
+    else:
+        raise ValueError('Unknown architecture {}.'.format(architecture))
+    params['net']['summary'] = True
+    params['net']['in_shape'] = [1024//order, 1024//order] # Shape of the image
+    params['net']['out_shape'] = [2] # Shape of the output (number of class)
+    params['net']['l2_reg'] = 0 # l2 regularization
+    
+
+    # Training.
+    params['optimization'] = dict()
+    params['optimization']['epoch'] = 80  # Number of passes through the training data.
+    params['optimization']['batch_size'] = 16 * order**2  # Constant quantity of information (#pixels) per step (invariant to sample size).
+    params['optimization']['learning_rate'] = 1e-3
+
+    n_evaluations = 200
+    params['summary_every'] = int(params['optimization']['epoch'] * ntrain / params['optimization']['batch_size'] / n_evaluations)
+    params['save_dir'] = 'checkpoints/{}/'.format(EXP_NAME)
+    params['summary_dir'] = 'summaries/{}'.format(EXP_NAME)
+    params['print_every'] = 10
+    
     return params

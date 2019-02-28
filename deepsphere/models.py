@@ -742,6 +742,364 @@ class cgcnn(base_model):
         return ax
 
 
+class cnn2d(base_model):
+    """
+    Graph CNN which uses the Chebyshev approximation.
+
+    The following are hyper-parameters of graph convolutional layers.
+    They are lists, which length is equal to the number of gconv layers.
+        F: Number of features.
+        K: List of polynomial orders, i.e. filter sizes or number of hopes.
+        p: Pooling size.
+           Should be 1 (no pooling) or a power of 2 (reduction by 2 at each coarser level).
+           Beware to have coarsened enough.
+        batch_norm: apply batch normalization after filtering (boolean vector)
+        L: List of Graph Laplacians. Size M x M.
+
+    The following are hyper-parameters of fully connected layers.
+    They are lists, which length is equal to the number of fc layers.
+        M: Number of features per sample, i.e. number of hidden neurons.
+           The last layer is the softmax, i.e. M[-1] is the number of classes.
+
+    The following are choices of implementation for various blocks.
+        conv: graph convolutional layer, e.g. chebyshev5 or monomials.
+        pool: pooling, e.g. max or average.
+        activation: non-linearity, e.g. relu, elu, leaky_relu.
+        statistics: layer which computes statistics from feature maps for the network to be invariant to translation and rotation.
+            * None: no statistical layer (default)
+            * 'mean': compute the mean of each feature map
+            * 'var': compute the variance of each feature map
+            * 'meanvar': compute the mean and variance of each feature map
+            * 'histogram': compute a learned histogram of each feature map
+
+    Training parameters:
+        num_epochs:     Number of training epochs.
+        scheduler:      Learning rate scheduler: function that takes the current step and returns the learning rate.
+        optimizer:      Function that takes the learning rate and returns a TF optimizer.
+        batch_size:     Batch size. Must divide evenly into the dataset sizes.
+        eval_frequency: Number of steps between evaluations.
+        profile:        Whether to profile compute time and memory usage. Needs libcupti in LD_LIBRARY_PATH.
+        debug:          Whether the model should be debugged via Tensorboard.
+
+    Regularization parameters:
+        regularization: L2 regularizations of weights and biases.
+        dropout:        Dropout (fc layers): probability to keep hidden neurons. No dropout with 1.
+
+    Directories:
+        dir_name: Name for directories (summaries and model parameters).
+    """
+
+    def __init__(self, F, K, p, batch_norm, M, 
+                num_epochs, scheduler, optimizer,
+                pool='max', activation='relu', statistics=None,
+                regularization=0, dropout=1, batch_size=128, eval_frequency=200,
+                dir_name='', profile=False, input_shape=None, debug=False):
+        super(cnn2d, self).__init__()
+
+        # Verify the consistency w.r.t. the number of layers.
+        if not len(F) == len(K) == len(p) == len(batch_norm):
+            raise ValueError('Wrong specification of the convolutional layers: '
+                             'parameters L, F, K, p, batch_norm, must have the same length.')
+        if not np.all(np.array(p) >= 1):
+            raise ValueError('Down-sampling factors p should be greater or equal to one.')
+        p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
+        if not np.all(np.mod(p_log2, 1) == 0):
+            raise ValueError('Down-sampling factors p should be powers of two.')
+        if len(M) == 0 and p[-1] != 1:
+            raise ValueError('Down-sampling should not be used in the last '
+                             'layer if no fully connected layer follows.')
+        j = 0
+
+        # Print information about NN architecture.
+        Ngconv = len(p)
+        Nfc = len(M)
+        print('NN architecture')
+        print('  input: = {}'.format(input_shape))
+        nx, ny = input_shape
+        for i in range(Ngconv):
+            nx = nx//p[i]
+            ny = ny//p[i]
+            print('  layer {0}: 2dconv{0}'.format(i+1))
+            print('    representation: {0} x {1} x {2} = {3}'.format(nx, ny, F[i], nx*ny*F[i]))
+            F_last = F[i-1] if i > 0 else 1
+            print('    weights: {0} * {1} * {2} * {3} = {4}'.format(
+                    K[i][0], K[i][1], F_last, F[i],  F_last*F[i]*K[i][0]*K[i][1]))
+            if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
+                print('    biases: F_{} = {}'.format(i+1, F[i]))
+            if batch_norm[i]:
+                print('    batch normalization')
+
+
+        M_last = nx*ny * F[-1]
+
+        if statistics is not None:
+            print('  Statistical layer: {}'.format(statistics))
+            if statistics is 'mean':
+                M_last = F[-1]
+                print('    representation: 1 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'var':
+                M_last = F[-1]
+                print('    representation: 1 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'meanvar':
+                M_last = 2 * F[-1]
+                print('    representation: 2 * {} = {}'.format(F[-1], M_last))
+            elif statistics is 'histogram':
+                nbins = 20
+                M_last = nbins * F[-1]
+                print('    representation: {} * {} = {}'.format(nbins, F[-1], M_last))
+                print('    weights: {} * {} = {}'.format(nbins, F[-1], M_last))
+                print('    biases: {} * {} = {}'.format(nbins, F[-1], M_last))
+
+        for i in range(Nfc):
+            name = 'logits (softmax)' if i == Nfc-1 else 'fc{}'.format(i+1)
+            print('  layer {}: {}'.format(Ngconv+i+1, name))
+            print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            print('    weights: M_{} * M_{} = {} * {} = {}'.format(
+                    Ngconv+i, Ngconv+i+1, M_last, M[i], M_last*M[i]))
+            if i < Nfc - 1:  # No bias if it's a softmax.
+                print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
+            M_last = M[i]
+
+        # Store attributes and bind operations.
+        self.F, self.K, self.p, self.M = F, K, p, M
+        self.num_epochs = num_epochs
+        self.scheduler, self.optimizer = scheduler, optimizer
+        self.regularization, self.dropout = regularization, dropout
+        self.batch_size, self.eval_frequency = batch_size, eval_frequency
+        self.batch_norm = batch_norm
+#         self.batch_norm_full = batch_norm_full
+        self.dir_name = dir_name
+        self.input_shape = input_shape
+        self.pool = getattr(self, 'pool_' + pool)
+        self.activation = getattr(tf.nn, activation)
+        self.statistics = statistics
+        self.profile, self.debug = profile, debug
+
+        # Build the computational graph.
+        self.build_graph()
+
+        
+    def predict(self, data, labels=None, sess=None):
+        loss = 0
+        size = data.shape[0]
+        predictions = np.empty(size)
+        sess = self._get_session(sess)
+        for begin in range(0, size, self.batch_size):
+            end = begin + self.batch_size
+            end = min([end, size])
+
+            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+            tmp_data = data[begin:end,:]
+            if type(tmp_data) is not np.ndarray:
+                tmp_data = tmp_data.toarray()  # convert sparse matrices
+            batch_data[:end-begin] = tmp_data
+            feed_dict = {self.ph_data: batch_data, self.ph_training: False}
+
+            # Compute loss if labels are given.
+            if labels is not None:
+                batch_labels = np.zeros(self.batch_size)
+                batch_labels[:end-begin] = labels[begin:end]
+                feed_dict[self.ph_labels] = batch_labels
+                batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
+                loss += batch_loss
+            else:
+                batch_pred = sess.run(self.op_prediction, feed_dict)
+
+            predictions[begin:end] = batch_pred[:end-begin]
+
+        if labels is not None:
+            return predictions, loss * self.batch_size / size
+        else:
+            return predictions
+        
+    def build_graph(self):
+        """Build the computational graph of the model."""
+
+        self.loadable_generator = LoadableGenerator()
+
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+
+            # Make the dataset
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
+            self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
+            ph_data, ph_labels = self.tf_data_iterator.get_next()
+
+
+            # Inputs.
+            with tf.name_scope('inputs'):
+                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, *self.input_shape), 'data')
+                self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
+                self.ph_training = tf.placeholder(tf.bool, (), 'training')
+
+            # Model.
+            op_logits = self.inference(self.ph_data, self.ph_training)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
+            self.op_train = self.training(self.op_loss)
+            self.op_prediction = self.prediction(op_logits)
+
+            # Initialize variables, i.e. weights and biases.
+            self.op_init = tf.global_variables_initializer()
+
+            # Summaries for TensorBoard and Save for model parameters.
+            self.op_summary = tf.summary.merge_all()
+            self.op_saver = tf.train.Saver(max_to_keep=5)
+            utils.show_all_variables()
+        self.graph.finalize()
+                  
+    def conv2d(self, imgs, nf_out, shape=[5, 5], stride=2, scope="conv2d", regularization=True):
+        '''Convolutional layer for square images'''
+
+        if not(isinstance(stride ,list) or isinstance(stride ,tuple)):
+            stride = [stride, stride]
+
+        weights_initializer = tf.contrib.layers.xavier_initializer()
+#         const = tf.constant_initializer(0.0)
+
+        with tf.variable_scope(scope):
+            sh = [shape[0], shape[1], imgs.get_shape()[-1].value, nf_out]
+            w = tf.get_variable('w', sh, initializer=weights_initializer)
+            if regularization:
+                self.regularizers.append(tf.nn.l2_loss(w))
+                self.regularizers_size.append(np.prod(sh))
+            conv = tf.nn.conv2d(
+                imgs, w, strides=[1, *stride, 1], padding='SAME')
+
+#             biases = _tf_variable('biases', [nf_out], initializer=const)
+#             conv = tf.nn.bias_add(conv, biases)
+
+
+            return conv
+
+    def bias(self, x):
+        """Add one bias per filter."""
+        const = tf.constant_initializer(0.0)
+        biases = tf.get_variable('biases', [x.shape[-1]], initializer=const)
+        return tf.nn.bias_add(x, biases)
+
+    def pool_max(self, x, p):
+        """Max pooling of size p. Should be a power of 2."""
+        if p > 1:
+            x = tf.expand_dims(x, 3)  # N x M x F x 1
+            x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
+            return tf.squeeze(x, [3])  # N x M/p x F
+        else:
+            return x
+
+    def pool_average(self, x, p):
+        """Average pooling of size p. Should be a power of 2."""
+        if p > 1:
+            x = tf.expand_dims(x, 3)  # N x M x F x 1
+            x = tf.nn.avg_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
+            return tf.squeeze(x, [3])  # N x M/p x F
+        else:
+            return x
+
+    def learned_histogram(self, x, bins=20, initial_range=2):
+        """A learned histogram layer.
+
+        The center and width of each bin is optimized.
+        One histogram is learned per feature map.
+        """
+        # Shape of x: #samples x #nodes x #features.
+        n_features = int(x.get_shape()[2])
+        centers = tf.linspace(-float(initial_range), initial_range, bins, name='range')
+        centers = tf.expand_dims(centers, axis=1)
+        centers = tf.tile(centers, [1, n_features])  # One histogram per feature channel.
+        centers = tf.Variable(
+            tf.reshape(tf.transpose(centers), shape=[1, 1, n_features, bins]),
+            name='centers',
+            dtype=tf.float32)
+        width = 4 * initial_range / bins  # 50% overlap between bins.
+        widths = tf.get_variable(
+            name='widths',
+            shape=[1, 1, n_features, bins],
+            dtype=tf.float32,
+            initializer=tf.initializers.constant(value=width, dtype=tf.float32))
+        x = tf.expand_dims(x, axis=3)
+        # All are rank-4 tensors: samples, nodes, features, bins.
+        widths = tf.abs(widths)
+        dist = tf.abs(x - centers)
+        hist = tf.reduce_mean(tf.nn.relu(1 - dist * widths), axis=1) * (bins/initial_range/4)
+        return hist
+
+    def batch_normalization(self, x, training, momentum=0.9):
+        """Batch norm layer."""
+        # Normalize over all but the last dimension, that is the features.
+        return tf.layers.batch_normalization(x,
+                                             axis=-1,
+                                             momentum=momentum,
+                                             epsilon=1e-5,
+                                             center=False,  # Done by bias.
+                                             scale=False,  # Done by filters.
+                                             training=training)
+
+    def fc(self, x, Mout, bias=True):
+        """Fully connected layer with Mout features."""
+        N, Min = x.get_shape()
+        W = self._weight_variable_fc(int(Min), Mout, regularization=True)
+        y = tf.matmul(x, W)
+        if bias:
+            y += self._bias_variable([Mout], regularization=False)
+        return y
+
+    def _weight_variable_fc(self, Min, Mout, regularization=True):
+        """Xavier like weight initializer for fully connected layer."""
+        stddev = 1 / np.sqrt(Min)
+        return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
+
+    def _inference(self, x, training):
+        x = tf.expand_dims(x,3)
+        # Graph convolutional layers.
+        for i in range(len(self.p)):
+            with tf.variable_scope('conv{}'.format(i+1)):
+                with tf.name_scope('filter'):
+                    x = self.conv2d(x, self.F[i], self.K[i], self.p[i])
+                if i == len(self.p)-1 and len(self.M) == 0:
+                    break  # That is a linear layer before the softmax.
+                if self.batch_norm[i]:
+                    x = self.batch_normalization(x, training)
+                x = self.bias(x)
+                x = self.activation(x)
+#                 with tf.name_scope('pooling'):
+#                     x = self.pool(x, self.p[i])
+
+        # Statistical layer (provides invariance to translation and rotation).
+        with tf.variable_scope('stat'):
+            n_samples, nx,ny, n_features = x.get_shape()
+            n_nodes = nx*ny
+            x = tf.reshape(x, (n_samples, n_nodes, n_features))
+            if self.statistics is None:
+                x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
+            elif self.statistics is 'mean':
+                x, _ = tf.nn.moments(x, axes=1)
+            elif self.statistics is 'var':
+                _, x = tf.nn.moments(x, axes=1)
+            elif self.statistics is 'meanvar':
+                mean, var = tf.nn.moments(x, axes=1)
+                x = tf.concat([mean, var], axis=1)
+            elif self.statistics is 'histogram':
+                n_bins = 20
+                x = self.learned_histogram(x, n_bins)
+                x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
+            else:
+                raise ValueError('Unknown statistical layer {}'.format(self.statistics))
+
+        # Fully connected hidden layers.
+        for i, M in enumerate(self.M[:-1]):
+            with tf.variable_scope('fc{}'.format(i+1)):
+                x = self.fc(x, M)
+                x = self.activation(x)
+                dropout = tf.cond(training, lambda: float(self.dropout), lambda: 1.0)
+                x = tf.nn.dropout(x, dropout)
+#                 if self.batch_norm_full[i]:
+#                     x = self.batch_normalization(x, training)
+        # Logits linear layer, i.e. softmax without normalization.
+        if len(self.M) != 0:
+            with tf.variable_scope('logits'):
+                x = self.fc(x, self.M[-1], bias=False)
+        return x
+
 class deepsphere(cgcnn):
     """
     Spherical convolutional neural network based on graph CNN

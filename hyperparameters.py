@@ -29,7 +29,6 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
     params['nsides'] = nsides
     params['indexes'] = utils.nside2indexes(nsides, order)
 #     params['batch_norm_full'] = []
-    reg_big = 0.1
     if architecture == "CNN":
         # Replace the last graph convolution and global average pooling by a fully connected layer.
         # That is, change the classifier while keeping the feature extractor.
@@ -51,7 +50,6 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
 #         params['batch_norm_full'] = [True]*3
 #         params['input_shape'] = (Nside//order)**2
     elif architecture == 'CNN-2d-big':
-        params['regularization'] = reg_big  # Amount of L2 regularization over the weights (will be divided by the number of weights).
         params['F'] = params['F'][:-1]
         params['K'] = params['K'][:-1]
         params['batch_norm'] = params['batch_norm'][:-1]
@@ -68,7 +66,6 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['input_shape'] = [1024//order, 1024//order]
 
     elif architecture == 'FCN-2d-big':
-        params['regularization'] = reg_big  
         params['K'] = [[5,5]] * 6
         del params['indexes']
         del params['nsides']
@@ -76,7 +73,6 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['input_shape'] = [1024//order, 1024//order]
         params['p'] = [2, 2, 2, 2, 2, 1]
     elif architecture == 'CNN-2d':
-        params['regularization'] = reg_big  
         params['F'] =  [8, 16, 32, 32, 16]
         params['K'] = params['K'][:-1]
         params['batch_norm'] = params['batch_norm'][:-1]
@@ -93,7 +89,7 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['input_shape'] = [1024//order, 1024//order]
 
     elif architecture == 'FCN-2d':
-        params['regularization'] = reg_big  
+        
         params['F'] =  [8, 16, 32, 32, 16, 2]
         params['K'] = [[5,5]] * 6
         del params['indexes']
@@ -106,6 +102,8 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
 
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    if '2d'in architecture:
+        params['regularization'] = 0.02  
     params['dropout'] = 1  # Percentage of neurons to keep.
 
 #     if architecture == 'FNN':

@@ -96,7 +96,7 @@ if __name__ == '__main__':
         # avoid all jobs starting at the same time
         time.sleep(np.random.rand()*100)
         res = single_experiment(sigma, order, sigma_noise, experiment_type)
-        filepath = os.path.join(path, 'reg1_deepsphere_results_list_sigma{}{}'.format(sigma,ename))
+        filepath = os.path.join(path, 'reg3_deepsphere_results_list_sigma{}{}'.format(sigma,ename))
         new_data = [order, sigma_noise, res]
         if os.path.isfile(filepath+'.npz'):
             results = np.load(filepath+'.npz')['data'].tolist()

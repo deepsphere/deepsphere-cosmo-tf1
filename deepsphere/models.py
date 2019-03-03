@@ -961,7 +961,7 @@ class cnn2d(base_model):
             sh = [shape[0], shape[1], imgs.get_shape()[-1].value, nf_out]
             w = tf.get_variable('w', sh, initializer=weights_initializer)
             if regularization:
-                self.regularizers.append(tf.nn.l2_loss(w)*np.prod(sh))
+                self.regularizers.append(tf.nn.l2_loss(w)*np.prod(sh[:-1]))
                 self.regularizers_size.append(np.prod(sh))
             conv = tf.nn.conv2d(
                 imgs, w, strides=[1, *stride, 1], padding='SAME')

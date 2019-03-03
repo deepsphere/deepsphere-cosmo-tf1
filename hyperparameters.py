@@ -103,7 +103,7 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     if '2d'in architecture:
-        params['regularization'] = 0.02  
+        params['regularization'] = 1  
     params['dropout'] = 1  # Percentage of neurons to keep.
 
 #     if architecture == 'FNN':

@@ -745,17 +745,15 @@ class cgcnn(base_model):
 
 class cnn2d(base_model):
     """
-    Graph CNN which uses the Chebyshev approximation.
+    2D convolutional neural network (2D ConvNet)
 
     The following are hyper-parameters of graph convolutional layers.
     They are lists, which length is equal to the number of gconv layers.
-        F: Number of features.
-        K: List of polynomial orders, i.e. filter sizes or number of hopes.
-        p: Pooling size.
-           Should be 1 (no pooling) or a power of 2 (reduction by 2 at each coarser level).
-           Beware to have coarsened enough.
+        F: Number of filters.
+        K: List of filter shape
+        p: Stride for each convolution.
         batch_norm: apply batch normalization after filtering (boolean vector)
-        L: List of Graph Laplacians. Size M x M.
+        input_shape: Size of the input image 
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.

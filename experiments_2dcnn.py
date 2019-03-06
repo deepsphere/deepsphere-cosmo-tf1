@@ -14,7 +14,7 @@ import sys
 import numpy as np
 import time
 
-from deepsphere.cnn import Healpix2CNN, build_index
+from deepsphere.utils import build_index
 from deepsphere import models, experiment_helper
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 from grid import pgrid

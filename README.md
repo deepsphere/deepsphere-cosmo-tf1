@@ -115,7 +115,7 @@ You can adapt the `launch_euler.py` and `launch_cscs.py` scripts to your particu
 Once the results are computed (or using those stored in the repository), you can reproduce the paper's figures with the `figure*` notebooks.
 The results will be saved in the [`figures`](figures) folder.
 
-## License & co
+## License & citation
 
 The content of this repository is released under the terms of the [MIT license](LICENCE.txt).
 Please cite our [paper] if you use it.

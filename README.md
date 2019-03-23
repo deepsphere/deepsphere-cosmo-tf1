@@ -129,3 +129,7 @@ Please cite our [paper] if you use it.
   url = {https://arxiv.org/abs/1810.12186},
 }
 ```
+
+## Experimental
+
+The folder `experimental` of the repository contains unfinished/untested/buggy pieces of code, that, for some reason, we still would like to keep. While we have nothing to hide, we advise you not to trust what is there.

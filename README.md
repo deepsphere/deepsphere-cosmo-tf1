@@ -96,10 +96,12 @@ While the instructions are simple, the experiments will take a while.
 3. **Run the experiments**.
    The first corresponds to the fully convolutional architecture variant of DeepSphere.
    The second corresponds to the classic CNN architecture variant.
+   The third corresponds to a standard 2D CNN (spherical maps are projected on the plane).
    The last two are the baselines: an SVM that classifies histograms and power spectral densities.
    ```
    python experiments_deepsphere.py FCN
    python experiments_deepsphere.py CNN
+   python experiments_2dcnn.py
    python experiments_histogram.py
    python experiments_psd.py
    ```
@@ -109,11 +111,17 @@ Note that results may vary from one run to the other.
 You may want to check summaries with tensorboard to verify that training converges.
 For some experiments, the network needs a large number of epochs to stabilize.
 
-The `experiments_deepsphere.py` and `experiments_psd.py` scripts can be executed in parallel in a HPC setting.
-You can adapt the `launch_euler.py` and `launch_cscs.py` scripts to your particular setting.
+The `experiments_deepsphere.py`, `experiments_2dcnn.py`, and `experiments_psd.py` scripts can be executed in parallel in a HPC setting.
+You can adapt the `launch_cscs.py`, `launch_cscs_2dcnn.py`, and `launch_euler.py` to your particular setting.
 
 Once the results are computed (or using those stored in the repository), you can reproduce the paper's figures with the `figure*` notebooks.
 The results will be saved in the [`figures`](figures) folder.
+You can also look at the figures stored in the [`outputs`](https://github.com/SwissDataScienceCenter/DeepSphere/tree/outputs/figures) branch.
+
+## Experimental
+
+The `experimental` folder contains unfinished, untested, and buggy code.
+We leave it as is for our own future reference, and for the extra curious. :wink:
 
 ## License & citation
 

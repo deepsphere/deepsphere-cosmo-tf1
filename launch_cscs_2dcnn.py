@@ -16,17 +16,17 @@ txtfile = '''#!/bin/bash -l
 #SBATCH --ntasks=1
 #SBATCH --constraint=gpu
 #SBATCH --account=sd01
-#SBATCH --output=deepsphere-{0}-{1}-{2}-{3}-%j.log
-#SBATCH --error=deepsphere-{0}-{1}-{2}-{3}-%j.log
+#SBATCH --output=2dcnn-{0}-{1}-{2}-{3}-%j.log
+#SBATCH --error=2dcnn-{0}-{1}-{2}-{3}-%j.log
 
 module load daint-gpu
 module load cray-python
-module load TensorFlow/1.7.0-CrayGNU-17.12-cuda-8.0-python3
+module load TensorFlow/1.7.0-CrayGNU-18.08-cuda-9.1-python3
 
 source $HOME/deepsphere/bin/activate
 
 cd $SCRATCH/deepsphere/
-srun python experiments_deepsphere.py {0} {1} {2} {3}
+srun python experiments_2dcnn.py {0} {1} {2} {3}
 '''
 
 
@@ -42,5 +42,7 @@ if __name__ == '__main__':
 
     grid = pgrid()
     for p in grid:
-        launch_simulation('FCN', *p)
-        launch_simulation('CNN', *p)
+        launch_simulation('FCN-2d', *p)
+        launch_simulation('CNN-2d', *p)
+        launch_simulation('FCN-2d-big', *p)
+        launch_simulation('CNN-2d-big', *p)

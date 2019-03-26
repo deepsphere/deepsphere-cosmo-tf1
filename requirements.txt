@@ -52,6 +52,7 @@ Pygments==2.2.0
 pyparsing==2.2.0
 python-dateutil==2.6.1
 pytz==2018.3
+PyYAML==5.1
 pyzmq==17.0.0
 Send2Trash==1.5.0
 simplegeneric==0.8.1

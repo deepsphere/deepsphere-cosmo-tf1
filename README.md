@@ -115,8 +115,8 @@ The `experiments_deepsphere.py`, `experiments_2dcnn.py`, and `experiments_psd.py
 You can adapt the `launch_cscs.py`, `launch_cscs_2dcnn.py`, and `launch_euler.py` to your particular setting.
 
 Once the results are computed (or using those stored in the repository), you can reproduce the paper's figures with the `figure*` notebooks.
-The results will be saved in the [`figures`](figures) folder.
-You can also look at the figures stored in the [`outputs`](https://github.com/SwissDataScienceCenter/DeepSphere/tree/outputs/figures) branch.
+The results will be saved in the `figures` folder.
+You can also look at the original figures stored in the [`outputs`](https://github.com/SwissDataScienceCenter/DeepSphere/tree/outputs/figures) branch.
 
 ## Experimental
 

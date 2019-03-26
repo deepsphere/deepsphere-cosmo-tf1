@@ -24,7 +24,7 @@ The performance of DeepSphere is demonstrated on a discrimination problem: the c
 
 ## Installation
 
-[![Binder](https://mybinder.org/badge.svg)][binder_lab]
+[![Binder](https://mybinder.org/badge_logo.svg)][binder_lab]
 &nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
 
 [binder_lab]: https://mybinder.org/v2/gh/SwissDataScienceCenter/DeepSphere/outputs?urlpath=lab

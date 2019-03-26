@@ -35,23 +35,24 @@ def single_experiment(sigma, order, sigma_noise, experiment_type):
 
     ret = experiment_helper.data_preprossing(x_raw_train, labels_raw_train, x_raw_test, sigma_noise, feature_type=None)
     features_train, labels_train, features_validation, labels_validation, features_test = ret
-    
+
     nx = Nside//order
     nlevels = np.round(np.log2(nx)).astype(np.int)
     index = build_index(nlevels).astype(np.int)
-    
+
     features_train = features_train[:, index]
     features_validation = features_validation[:, index]
     shuffle = np.random.permutation(len(features_test))
     features_test = features_test[:, index]
     features_test = features_test[shuffle]
     labels_test = labels_test[shuffle]
-    
+
     training = LabeledDatasetWithNoise(features_train, labels_train, end_level=sigma_noise)
     validation = LabeledDataset(features_validation, labels_validation)
 
-#     params = hyperparameters.get_params_CNN2D(training.N, EXP_NAME, order, Nside, experiment_type)
-#     model = Healpix2CNN(**params)
+    # Better implementation, but it doesn't work for some reason.
+    # params = hyperparameters.get_params_CNN2D(training.N, EXP_NAME, order, Nside, experiment_type)
+    # model = Healpix2CNN(**params)
 
     params = hyperparameters.get_params(training.N, EXP_NAME, order, Nside, experiment_type)
     model = models.cnn2d(**params)
@@ -59,7 +60,7 @@ def single_experiment(sigma, order, sigma_noise, experiment_type):
     # Cleanup before running again.
     shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
     shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
-    
+
     model.fit(training, validation)
 
     error_validation = experiment_helper.model_error(model, features_validation, labels_validation)

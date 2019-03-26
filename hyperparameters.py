@@ -6,6 +6,7 @@ from deepsphere import utils
 
 
 def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True):
+    """Parameters for the cgcnn and cnn2d defined in deepsphere/models.py"""
 
     n_classes = 2
 
@@ -29,7 +30,9 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
     params['nsides'] = nsides
     params['indexes'] = utils.nside2indexes(nsides, order)
 #     params['batch_norm_full'] = []
+
     if architecture == "CNN":
+        # Classical convolutional neural network.
         # Replace the last graph convolution and global average pooling by a fully connected layer.
         # That is, change the classifier while keeping the feature extractor.
         params['F'] = params['F'][:-1]
@@ -39,78 +42,76 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
         params['M'] = [n_classes]
-#     elif architecture == 'FNN':
-#         # Fully connected neural network. This is not working!
-#         params['F'] = []
-#         params['K'] = []
-#         params['batch_norm'] = []
-#         params['indexes'] = []
-#         params['statistics'] = None
-#         params['M'] = [128*order*order, 1024*order, 1024*order, n_classes]
-#         params['batch_norm_full'] = [True]*3
-#         params['input_shape'] = (Nside//order)**2
+
+    elif architecture == "FCN":
+        # Fully convolutional neural network.
+        pass
+
+    elif architecture == 'FNN':
+        # Fully connected neural network.
+        raise NotImplementedError('This is not working!')
+        params['F'] = []
+        params['K'] = []
+        params['batch_norm'] = []
+        params['indexes'] = []
+        params['statistics'] = None
+        params['M'] = [128*order*order, 1024*order, 1024*order, n_classes]
+        params['batch_norm_full'] = [True]*3
+        params['input_shape'] = (Nside//order)**2
+
     elif architecture == 'CNN-2d-big':
         params['F'] = params['F'][:-1]
-        params['K'] = params['K'][:-1]
+        params['K'] = [[5, 5]] * 5
+        params['p'] = [2, 2, 2, 2, 2]
+        params['input_shape'] = [1024//order, 1024//order]
         params['batch_norm'] = params['batch_norm'][:-1]
-        params['nsides'] = params['nsides'][:-1]
-        params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
         params['M'] = [n_classes]
-        params['K'] = [[5,5]] * 5
-        params['p'] = [2, 2, 2, 2, 2]
         del params['indexes']
         del params['nsides']
         del params['conv']
-
-        params['input_shape'] = [1024//order, 1024//order]
 
     elif architecture == 'FCN-2d-big':
-        params['K'] = [[5,5]] * 6
+        params['K'] = [[5, 5]] * 6
+        params['p'] = [2, 2, 2, 2, 2, 1]
+        params['input_shape'] = [1024//order, 1024//order]
         del params['indexes']
         del params['nsides']
         del params['conv']
-        params['input_shape'] = [1024//order, 1024//order]
-        params['p'] = [2, 2, 2, 2, 2, 1]
+
     elif architecture == 'CNN-2d':
-        params['F'] =  [8, 16, 32, 32, 16]
-        params['K'] = params['K'][:-1]
+        params['F'] = [8, 16, 32, 32, 16]
+        params['K'] = [[5, 5]] * 5
+        params['p'] = [2, 2, 2, 2, 2]
+        params['input_shape'] = [1024//order, 1024//order]
         params['batch_norm'] = params['batch_norm'][:-1]
-        params['nsides'] = params['nsides'][:-1]
-        params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
         params['M'] = [n_classes]
-        params['K'] = [[5,5]] * 5
-        params['p'] = [2, 2, 2, 2, 2]
         del params['indexes']
         del params['nsides']
         del params['conv']
-
-        params['input_shape'] = [1024//order, 1024//order]
 
     elif architecture == 'FCN-2d':
-        
-        params['F'] =  [8, 16, 32, 32, 16, 2]
-        params['K'] = [[5,5]] * 6
+        params['F'] = [8, 16, 32, 32, 16, 2]
+        params['K'] = [[5, 5]] * 6
+        params['p'] = [2, 2, 2, 2, 2, 1]
+        params['input_shape'] = [1024//order, 1024//order]
         del params['indexes']
         del params['nsides']
         del params['conv']
-        params['input_shape'] = [1024//order, 1024//order]
-        params['p'] = [2, 2, 2, 2, 2, 1]
-    elif architecture != "FCN":
+
+    else:
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
-    if '2d'in architecture:
+    if '2d' in architecture:
         params['regularization'] = 3
-    params['dropout'] = 1  # Percentage of neurons to keep.
-
-#     if architecture == 'FNN':
+#     elif architecture == 'FNN':
 #         print('Use regularization new')
 #         params['regularization'] = 10  # Amount of L2 regularization over the weights (will be divided by the number of weights).
 #         params['dropout'] = 1  # Percentage of neurons to keep.
-    
+    params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
     params['num_epochs'] = 80  # Number of passes through the training data.
@@ -141,6 +142,8 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
 
 
 def get_params_CNN2D(ntrain, EXP_NAME, order, Nside, architecture='FCN', verbose=True):
+    """Parameters for the Healpix2CNN defined in experimental/cnn.py"""
+
     bn = True
 
     params = dict()
@@ -176,11 +179,11 @@ def get_params_CNN2D(ntrain, EXP_NAME, order, Nside, architecture='FCN', verbose
         params['net']['statistics'] = 'mean' # 'mean', 'var', 'meanvar'
     else:
         raise ValueError('Unknown architecture {}.'.format(architecture))
+
     params['net']['summary'] = True
     params['net']['in_shape'] = [1024//order, 1024//order] # Shape of the image
     params['net']['out_shape'] = [2] # Shape of the output (number of class)
     params['net']['l2_reg'] = 0 # l2 regularization
-    
 
     # Training.
     params['optimization'] = dict()
@@ -193,5 +196,5 @@ def get_params_CNN2D(ntrain, EXP_NAME, order, Nside, architecture='FCN', verbose
     params['save_dir'] = 'checkpoints/{}/'.format(EXP_NAME)
     params['summary_dir'] = 'summaries/{}'.format(EXP_NAME)
     params['print_every'] = 10
-    
+
     return params

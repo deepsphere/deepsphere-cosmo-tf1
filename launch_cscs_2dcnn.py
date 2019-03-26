@@ -42,10 +42,6 @@ if __name__ == '__main__':
 
     grid = pgrid()
     for p in grid:
-#         launch_simulation('FCN', *p)
-#         launch_simulation('CNN', *p)
-#         launch_simulation('FCN-big', *p)
-#         launch_simulation('CNN-big', *p)
         launch_simulation('FCN-2d', *p)
         launch_simulation('CNN-2d', *p)
         launch_simulation('FCN-2d-big', *p)

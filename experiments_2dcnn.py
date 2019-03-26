@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     ename = '_'+experiment_type
 
-    path = 'results/deepsphere_new_2dcnn/'
+    path = 'results/2dcnn/'
     os.makedirs(path, exist_ok=True)
 
     for sigma, order, sigma_noise in grid:

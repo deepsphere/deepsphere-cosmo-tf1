@@ -191,9 +191,9 @@ def rescale_L(L, lmax=2, scale=1):
     """Rescale the Laplacian eigenvalues in [-scale,scale]."""
     M, M = L.shape
     I = sparse.identity(M, format='csr', dtype=L.dtype)
-    L /= (lmax / 2)
+    L *= 2 * scale / lmax
     L -= I
-    return L*scale
+    return L
 
 
 def build_laplacians(nsides, indexes=None, use_4=False):

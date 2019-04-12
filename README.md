@@ -1,9 +1,11 @@
 # DeepSphere: a spherical convolutional neural network
 
-[Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff], Tomasz Kacprzak, Raphael Sgier
+[Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff], [Tomasz Kacprzak][tomek], [Raphael Sgier][raphael]
 
 [nath]: https://perraudin.info
 [mdeff]: http://deff.ch
+[tomek]: http://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html
+[raphael]: http://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html
 
 The code in this repository implements a generalization of Convolutional Neural Networks (CNNs) to the sphere.
 We here model the discretised sphere as a graph of connected pixels.

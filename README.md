@@ -14,10 +14,13 @@ The performance of DeepSphere is demonstrated on a discrimination problem: the c
 
 **blog post**: [DeepSphere: a neural network architecture for spherical data][blog]
 
-**paper**: [DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications][paper]
+**paper (cosmo)**: [DeepSphere: Efficient spherical CNN with HEALPix sampling for cosmological applications][paper_cosmo]
+
+**paper (ML)**: [DeepSphere: a graph-based spherical CNN with approximate equivariance][paper_ml]
 
 [blog]: https://datascience.ch/deepsphere-a-neural-network-architecture-for-spherical-data
-[paper]: https://arxiv.org/abs/1810.12186
+[paper_cosmo]: https://arxiv.org/abs/1810.12186
+[paper_ml]: https://arxiv.org/abs/1904.05146
 
 [gcnn_paper]: https://arxiv.org/abs/1606.09375
 [gcnn_code]: https://github.com/mdeff/cnn_graph/
@@ -126,14 +129,28 @@ We leave it as is for our own future reference, and for the extra curious. :wink
 ## License & citation
 
 The content of this repository is released under the terms of the [MIT license](LICENCE.txt).
-Please cite our [paper] if you use it.
+Please consider citing our papers if you use it.
 
 ```
-@article{,
+@article{deepsphere_cosmo,
   title = {DeepSphere: Efficient spherical Convolutional Neural Network with HEALPix sampling for cosmological applications},
   author = {Perraudin, Nathana\"el and Defferrard, Micha\"el and Kacprzak, Tomasz and Sgier, Raphael},
-  journal = {arXiv},
+  journal = {Astronomy and Computing},
   year = {2018},
+  archivePrefix = {arXiv},
+  eprint = {1810.12186},
   url = {https://arxiv.org/abs/1810.12186},
+}
+```
+
+```
+@inproceedings{deepsphere_ml,
+  title = {DeepSphere: towards an equivariant graph-based spherical CNN},
+  author = {Defferrard, Micha\"el and Perraudin, Nathana\"el and Kacprzak, Tomasz and Sgier, Raphael},
+  booktitle = {ICLR Workshop on Representation Learning on Graphs and Manifolds},
+  year = {2019},
+  archivePrefix = {arXiv},
+  eprint = {1904.05146},
+  url = {https://arxiv.org/abs/1904.05146},
 }
 ```

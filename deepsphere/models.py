@@ -75,7 +75,7 @@ class base_model(object):
             end = begin + self.batch_size
             end = min([end, size])
 
-            batch_data = np.zeros((self.batch_size, data.shape[1]))
+            batch_data = np.zeros((self.batch_size, *data.shape[1:]))
             tmp_data = data[begin:end,:]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
@@ -173,7 +173,6 @@ class base_model(object):
             else:
                 run_options = None
                 run_metadata = None
-
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
 
             # Periodical evaluation of the model.
@@ -226,14 +225,17 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32,))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
 
             # Inputs.
             with tf.name_scope('inputs'):
-                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+                if self.input_channel == 1:
+                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+                else:
+                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, self.input_channel), 'data')
                 self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
@@ -290,7 +292,6 @@ class base_model(object):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                 cross_entropy = tf.reduce_mean(cross_entropy)
             with tf.name_scope('regularization'):
-                print(regularization)
                 n_weights = np.sum(self.regularizers_size)
                 regularization *= tf.add_n(self.regularizers) / n_weights
             loss = cross_entropy + regularization
@@ -372,6 +373,7 @@ class cgcnn(base_model):
            Beware to have coarsened enough.
         batch_norm: apply batch normalization after filtering (boolean vector)
         L: List of Graph Laplacians. Size M x M.
+        input_channel: Number of channels of the input image (default 1)
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
@@ -408,6 +410,7 @@ class cgcnn(base_model):
 
     def __init__(self, L, F, K, p, batch_norm, M,
                 num_epochs, scheduler, optimizer,
+                input_channel=1,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
                 dir_name='', profile=False, debug=False):
@@ -441,7 +444,7 @@ class cgcnn(base_model):
             print('  layer {0}: cgconv{0}'.format(i+1))
             print('    representation: M_{0} * F_{1} / p_{1} = {2} * {3} / {4} = {5}'.format(
                     i, i+1, L[i].shape[0], F[i], p[i], L[i].shape[0]*F[i]//p[i]))
-            F_last = F[i-1] if i > 0 else 1
+            F_last = F[i-1] if i > 0 else input_channel
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
             if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
@@ -482,6 +485,7 @@ class cgcnn(base_model):
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
+        self.input_channel = input_channel
         self.num_epochs = num_epochs
         self.scheduler, self.optimizer = scheduler, optimizer
         self.regularization, self.dropout = regularization, dropout
@@ -650,7 +654,8 @@ class cgcnn(base_model):
     def _inference(self, x, training):
 
         # Graph convolutional layers.
-        x = tf.expand_dims(x, 2)  # N x M x F=1
+        if len(x.shape)<3:
+            x = tf.expand_dims(x, 2)  # N x M x F=1
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
@@ -754,6 +759,7 @@ class cnn2d(base_model):
         p: Stride for each convolution.
         batch_norm: apply batch normalization after filtering (boolean vector)
         input_shape: Size of the input image 
+        input_channel: Number of channel of the input image
 
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
@@ -790,6 +796,7 @@ class cnn2d(base_model):
 
     def __init__(self, F, K, p, batch_norm, M, 
                 num_epochs, scheduler, optimizer,
+                input_channel=1,
                 pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
                 dir_name='', profile=False, input_shape=None, debug=False):
@@ -820,7 +827,7 @@ class cnn2d(base_model):
             ny = ny//p[i]
             print('  layer {0}: 2dconv{0}'.format(i+1))
             print('    representation: {0} x {1} x {2} = {3}'.format(nx, ny, F[i], nx*ny*F[i]))
-            F_last = F[i-1] if i > 0 else 1
+            F_last = F[i-1] if i > 0 else input_channel
             print('    weights: {0} * {1} * {2} * {3} = {4}'.format(
                     K[i][0], K[i][1], F_last, F[i],  F_last*F[i]*K[i][0]*K[i][1]))
             if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
@@ -869,6 +876,7 @@ class cnn2d(base_model):
 #         self.batch_norm_full = batch_norm_full
         self.dir_name = dir_name
         self.input_shape = input_shape
+        self.input_channel = input_channel
         self.pool = getattr(self, 'pool_' + pool)
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
@@ -887,7 +895,7 @@ class cnn2d(base_model):
             end = begin + self.batch_size
             end = min([end, size])
 
-            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+            batch_data = np.zeros((self.batch_size, *data.shape[1:]))
             tmp_data = data[begin:end,:]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
@@ -927,7 +935,10 @@ class cnn2d(base_model):
 
             # Inputs.
             with tf.name_scope('inputs'):
-                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, *self.input_shape), 'data')
+                if self.input_channel>1:
+                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, *self.input_shape), 'data')
+                else:
+                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, *self.input_shape, self.input_channel), 'data')
                 self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 

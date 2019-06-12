@@ -60,16 +60,17 @@ class LoadableGenerator(object):
 class base_model(object):
     """Common methods for all models."""
 
-    def __init__(self):
+    def __init__(self, loss='cross_entropy'):
         self.regularizers = []
         self.regularizers_size = []
+        self._loss_type = loss
 
     # High-level interface which runs the constructed computational graph.
 
     def predict(self, data, labels=None, sess=None):
         loss = 0
         size = data.shape[0]
-        predictions = np.empty(size)
+        predictions = []
         sess = self._get_session(sess)
         for begin in range(0, size, self.batch_size):
             end = begin + self.batch_size
@@ -84,7 +85,10 @@ class base_model(object):
 
             # Compute loss if labels are given.
             if labels is not None:
-                batch_labels = np.zeros(self.batch_size)
+                if self._loss_type =='cross_entropy':
+                    batch_labels = np.zeros(self.batch_size)
+                else:
+                    batch_labels = np.zeros((self.batch_size,labels.shape[1]))
                 batch_labels[:end-begin] = labels[begin:end]
                 feed_dict[self.ph_labels] = batch_labels
                 batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
@@ -92,7 +96,8 @@ class base_model(object):
             else:
                 batch_pred = sess.run(self.op_prediction, feed_dict)
 
-            predictions[begin:end] = batch_pred[:end-begin]
+            predictions.append(batch_pred[:end-begin])
+        predictions = np.concatenate(predictions)
 
         if labels is not None:
             return predictions, loss * self.batch_size / size
@@ -115,20 +120,24 @@ class base_model(object):
         """
         t_cpu, t_wall = process_time(), time.time()
         predictions, loss = self.predict(data, labels, sess)
-        ncorrects = sum(predictions == labels)
-        accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
-        f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
-        string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
-                accuracy, ncorrects, len(labels), f1, loss)
+        if self._loss_type =='cross_entropy':
+            ncorrects = sum(predictions == labels)
+            accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
+            f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
+            string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
+                    accuracy, ncorrects, len(labels), f1, loss)
+        else:
+            string = 'loss: {:.2e}'.format(loss)
+            accuracy, f1 = None, None
         if sess is None:
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
     def fit(self, train_dataset, val_dataset, use_tf_dataset=False):
 
-        # Load the dataset
-        if use_tf_dataset:
-            self.loadable_generator.load(train_dataset.iter(self.batch_size))
+#         # Load the dataset
+#         if use_tf_dataset:
+#             self.loadable_generator.load(train_dataset.iter(self.batch_size))
 
         t_cpu, t_wall = process_time(), time.time()
         sess = tf.Session(graph=self.graph)
@@ -144,63 +153,71 @@ class base_model(object):
         sess.run(self.op_init)
 
         # Training.
-        accuracies_validation = []
+        if self._loss_type =='cross_entropy':
+            accuracies_validation = []
+        else:
+            accuracies_validation = None
         losses_validation = []
         losses_training = []
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
-        if not use_tf_dataset:
-            train_iter = train_dataset.iter(self.batch_size)
-        else:
-            sess.run(self.tf_data_iterator.initializer)
+#         if not use_tf_dataset:
+        train_iter = train_dataset.iter(self.batch_size)
+#         else:
+#             sess.run(self.tf_data_iterator.initializer)
 
         val_data, val_labels = val_dataset.get_all_data()
-        for step in range(1, num_steps+1):
+        try:
+            for step in range(1, num_steps+1):
 
-            if not use_tf_dataset:
+    #             if not use_tf_dataset:
                 batch_data, batch_labels = next(train_iter)
                 if type(batch_data) is not np.ndarray:
                     batch_data = batch_data.toarray()  # convert sparse matrices
                 feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
-            else:
-                feed_dict = {self.ph_training: True}
+    #             else:
+    #                 feed_dict = {self.ph_training: True}
 
-            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
+                learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
 
-            evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
-            if evaluate and self.profile:
-                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                run_metadata = tf.RunMetadata()
-            else:
-                run_options = None
-                run_metadata = None
-            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
+                evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
+                if evaluate and self.profile:
+                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    run_metadata = tf.RunMetadata()
+                else:
+                    run_options = None
+                    run_metadata = None
+                learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
 
-            # Periodical evaluation of the model.
-            if evaluate:
-                epoch = step * self.batch_size / train_dataset.N
-                print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
-                losses_training.append(loss)
-                string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies_validation.append(accuracy)
-                losses_validation.append(loss)
-                print('  validation {}'.format(string))
-                print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
+                # Periodical evaluation of the model.
+                if evaluate:
+                    epoch = step * self.batch_size / train_dataset.N
+                    print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
+                    print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                    losses_training.append(loss)
+                    string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                    if self._loss_type =='cross_entropy':
+                        accuracies_validation.append(accuracy)
+                    losses_validation.append(loss)
+                    print('  validation {}'.format(string))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
 
-                # Summaries for TensorBoard.
-                summary = tf.Summary()
-                summary.ParseFromString(sess.run(self.op_summary, feed_dict))
-                summary.value.add(tag='validation/accuracy', simple_value=accuracy)
-                summary.value.add(tag='validation/f1', simple_value=f1)
-                summary.value.add(tag='validation/loss', simple_value=loss)
-                writer.add_summary(summary, step)
-                if self.profile:
-                    writer.add_run_metadata(run_metadata, 'step{}'.format(step))
+                    # Summaries for TensorBoard.
+                    summary = tf.Summary()
+                    summary.ParseFromString(sess.run(self.op_summary, feed_dict))
+                    if self._loss_type =='cross_entropy':
+                        summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                        summary.value.add(tag='validation/f1', simple_value=f1)
+                    summary.value.add(tag='validation/loss', simple_value=loss)
+                    writer.add_summary(summary, step)
+                    if self.profile:
+                        writer.add_run_metadata(run_metadata, 'step{}'.format(step))
 
-                # Save model parameters (for evaluation).
-                self.op_saver.save(sess, path, global_step=step)
-
-        print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
+                    # Save model parameters (for evaluation).
+                    self.op_saver.save(sess, path, global_step=step)
+        except KeyboardInterrupt:
+            print('Optimization stoped by the user')
+        if self._loss_type =='cross_entropy':
+            print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
 
@@ -224,19 +241,27 @@ class base_model(object):
         self.graph = tf.Graph()
         with self.graph.as_default():
 
-            # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32,))
-            self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
-            ph_data, ph_labels = self.tf_data_iterator.get_next()
+#             # Make the dataset
+#             self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32,))
+#             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
+#             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
 
             # Inputs.
             with tf.name_scope('inputs'):
+#                 if self.input_channel == 1:
+#                     self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+#                 else:
+#                     self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, self.input_channel), 'data')
+#                 self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 if self.input_channel == 1:
-                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
                 else:
-                    self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, self.input_channel), 'data')
-                self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
+                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0, self.input_channel), 'data')
+                if self._loss_type =='cross_entropy':
+                    self.ph_labels = tf.placeholder(tf.int32, (self.batch_size), 'labels')
+                else:
+                    self.ph_labels = tf.placeholder(tf.float32, (self.batch_size, None), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.
@@ -274,30 +299,50 @@ class base_model(object):
 
     def probabilities(self, logits):
         """Return the probability of a sample to belong to each class."""
-        with tf.name_scope('probabilities'):
-            probabilities = tf.nn.softmax(logits)
-            return probabilities
+        if self._loss_type =='cross_entropy':
+            with tf.name_scope('probabilities'):
+                probabilities = tf.nn.softmax(logits)
+                return probabilities
+        else:
+            return None
 
     def prediction(self, logits):
         """Return the predicted classes."""
         with tf.name_scope('prediction'):
-            prediction = tf.argmax(logits, axis=1)
+            if self._loss_type =='cross_entropy':
+                prediction = tf.argmax(logits, axis=1)
+            else:
+                prediction = logits
             return prediction
 
     def loss(self, logits, labels, regularization):
         """Adds to the inference model the layers required to generate loss."""
         with tf.name_scope('loss'):
-            with tf.name_scope('cross_entropy'):
-                labels = tf.to_int64(labels)
-                cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-                cross_entropy = tf.reduce_mean(cross_entropy)
+            if self._loss_type =='cross_entropy':
+                with tf.name_scope('cross_entropy'):
+                    labels = tf.to_int64(labels)
+                    fit_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+                    fit_loss = tf.reduce_mean(fit_loss)
+                # Summaries for TensorBoard.
+                tf.summary.scalar('loss/cross_entropy', fit_loss)
+            elif self._loss_type =='l2':
+                with tf.name_scope('L2_loss'):
+                    fit_loss = tf.reduce_mean(tf.nn.l2_loss(logits-labels))
+                # Summaries for TensorBoard.
+                tf.summary.scalar('loss/l2', fit_loss)
+            elif self._loss_type =='l1':
+                with tf.name_scope('L1_Loss'):
+                    fit_loss = tf.reduce_mean(tf.abs(logits-labels))
+                # Summaries for TensorBoard.
+                tf.summary.scalar('loss/l1', fit_loss)     
+            else:
+                raise ValueError('Unknown loss')
             with tf.name_scope('regularization'):
                 n_weights = np.sum(self.regularizers_size)
                 regularization *= tf.add_n(self.regularizers) / n_weights
-            loss = cross_entropy + regularization
+            loss = fit_loss + regularization
 
-            # Summaries for TensorBoard.
-            tf.summary.scalar('loss/cross_entropy', cross_entropy)
+
             tf.summary.scalar('loss/regularization', regularization)
             tf.summary.scalar('loss/total', loss)
             return loss
@@ -378,7 +423,8 @@ class cgcnn(base_model):
     The following are hyper-parameters of fully connected layers.
     They are lists, which length is equal to the number of fc layers.
         M: Number of features per sample, i.e. number of hidden neurons.
-           The last layer is the softmax, i.e. M[-1] is the number of classes.
+           The last layer is the softmax, i.e. M[-1] is the number of classes for classification.
+           Their is no non-linearity for regression...
 
     The following are choices of implementation for various blocks.
         conv: graph convolutional layer, e.g. chebyshev5 or monomials.
@@ -390,6 +436,10 @@ class cgcnn(base_model):
             * 'var': compute the variance of each feature map
             * 'meanvar': compute the mean and variance of each feature map
             * 'histogram': compute a learned histogram of each feature map
+        loss: loss used to optimize the network
+            * 'cross_entropy': loss for classification
+            * 'l2': l2 loss 
+            * 'l1': l1 loss
 
     Training parameters:
         num_epochs:     Number of training epochs.
@@ -413,8 +463,8 @@ class cgcnn(base_model):
                 input_channel=1,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
-                dir_name='', profile=False, debug=False):
-        super(cgcnn, self).__init__()
+                dir_name='', profile=False, debug=False, loss='cross_entropy'):
+        super(cgcnn, self).__init__(loss=loss)
 
         # Verify the consistency w.r.t. the number of layers.
         if not len(L) == len(F) == len(K) == len(p) == len(batch_norm):
@@ -474,7 +524,7 @@ class cgcnn(base_model):
                 print('    biases: {} * {} = {}'.format(nbins, F[-1], M_last))
 
         for i in range(Nfc):
-            name = 'logits (softmax)' if i == Nfc-1 else 'fc{}'.format(i+1)
+            name = 'logits (softmax)' if (i == Nfc-1 and self._loss_type =='cross_entropy')else 'fc{}'.format(i+1)
             print('  layer {}: {}'.format(Ngconv+i+1, name))
             print('    representation: M_{} = {}'.format(Ngconv+i+1, M[i]))
             print('    weights: M_{} * M_{} = {} * {} = {}'.format(

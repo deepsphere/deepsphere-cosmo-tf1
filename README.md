@@ -58,10 +58,12 @@ For a local installation, follow the below instructions.
 ## Notebooks
 
 The below notebooks contain examples and experiments to play with the model.
-Look at the first two if you want to use the model with your own data.
+Look at the first three if you want to use the model with your own data.
 
 1. [Classification of data on the whole sphere.][whole_sphere]
    The easiest example to run if you want to play with the model.
+1. [Regression from multiple spherical maps.][regression_multichannels]
+   Shows how to regress (multiple) parameters from (multiple) input channels.
 1. [Classification of data from part of the sphere with noise.][part_sphere]
    That is the main experiment carried on in the paper (with one configuration of resolution and noise).
    It requires private data, see below.
@@ -72,6 +74,7 @@ Look at the first two if you want to use the model with your own data.
    Get a taste of the difference between the graph representation and the analytic sphere.
 
 [whole_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_whole_sphere.ipynb
+[regression_multichannels]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_regression_multichannels.ipynb
 [part_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_part_sphere.ipynb
 [spherical_convolution]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_convolution.ipynb
 [spherical_vs_graph]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_vs_graph.ipynb

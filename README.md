@@ -31,17 +31,15 @@ Ressources:
 
 ## Installation
 
-[![Binder](https://mybinder.org/badge_logo.svg)][binder_lab]
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deepsphere/deepsphere-cosmo-tf1/outputs?urlpath=lab)
 &nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
-
-[binder_lab]: https://mybinder.org/v2/gh/SwissDataScienceCenter/DeepSphere/outputs?urlpath=lab
 
 For a local installation, follow the below instructions.
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/SwissDataScienceCenter/DeepSphere.git
-   cd DeepSphere
+   git clone https://github.com/deepsphere/deepsphere-cosmo-tf1.git
+   cd deepsphere-cosmo-tf1
    ```
 
 2. Install the dependencies.
@@ -80,11 +78,11 @@ Look at the first three if you want to use the model with your own data.
 1. [Comparison of the spherical harmonics with the eigenvectors of the graph Laplacian.][spherical_vs_graph]
    Get a taste of the difference between the graph representation and the analytic sphere.
 
-[whole_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_whole_sphere.ipynb
-[regression_multichannels]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_regression_multichannels.ipynb
-[part_sphere]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_part_sphere.ipynb
-[spherical_convolution]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_convolution.ipynb
-[spherical_vs_graph]: https://nbviewer.jupyter.org/github/SwissDataScienceCenter/DeepSphere/blob/outputs/demo_spherical_vs_graph.ipynb
+[whole_sphere]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-cosmo-tf1/blob/outputs/demo_whole_sphere.ipynb
+[regression_multichannels]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-cosmo-tf1/blob/outputs/demo_regression_multichannels.ipynb
+[part_sphere]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-cosmo-tf1/blob/outputs/demo_part_sphere.ipynb
+[spherical_convolution]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-cosmo-tf1/blob/outputs/demo_spherical_convolution.ipynb
+[spherical_vs_graph]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-cosmo-tf1/blob/outputs/demo_spherical_vs_graph.ipynb
 
 ## Reproducing the results of the paper
 
@@ -126,7 +124,7 @@ You can adapt the `launch_cscs.py`, `launch_cscs_2dcnn.py`, and `launch_euler.py
 
 Once the results are computed (or using those stored in the repository), you can reproduce the paper's figures with the `figure*` notebooks.
 The results will be saved in the `figures` folder.
-You can also look at the original figures stored in the [`outputs`](https://github.com/SwissDataScienceCenter/DeepSphere/tree/outputs/figures) branch.
+You can also look at the original figures stored in the [`outputs`](https://github.com/deepsphere/deepsphere-cosmo-tf1/tree/outputs/figures) branch.
 
 ## Experimental
 

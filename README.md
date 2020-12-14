@@ -3,7 +3,7 @@
 [Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff], [Tomasz Kacprzak][tomek], [Raphael Sgier][raphael]
 
 [nath]: https://perraudin.info
-[mdeff]: http://deff.ch
+[mdeff]: https://deff.ch
 [tomek]: http://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html
 [raphael]: http://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html
 

@@ -151,7 +151,7 @@ Please consider citing our papers if you use it.
 ```
 
 ```
-@inproceedings{deepsphere_ml,
+@inproceedings{deepsphere_rlgm,
   title = {DeepSphere: towards an equivariant graph-based spherical CNN},
   author = {Defferrard, Micha\"el and Perraudin, Nathana\"el and Kacprzak, Tomasz and Sgier, Raphael},
   booktitle = {ICLR Workshop on Representation Learning on Graphs and Manifolds},
@@ -159,5 +159,15 @@ Please consider citing our papers if you use it.
   archivePrefix = {arXiv},
   eprint = {1904.05146},
   url = {https://arxiv.org/abs/1904.05146},
+}
+```
+
+```
+@inproceedings{deepsphere_iclr,
+  title = {{DeepSphere}: a graph-based spherical {CNN}},
+  author = {Defferrard, Michaël and Milani, Martino and Gusset, Frédérick and Perraudin, Nathanaël},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year = {2020},
+  url = {https://openreview.net/forum?id=B1e3OlStPB},
 }
 ```

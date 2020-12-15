@@ -1,11 +1,9 @@
 # DeepSphere: a spherical convolutional neural network
 
-[Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff], [Tomasz Kacprzak][tomek], [Raphael Sgier][raphael]
-
-[nath]: https://perraudin.info
-[mdeff]: https://deff.ch
-[tomek]: http://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html
-[raphael]: http://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html
+[Nathanaël Perraudin](https://perraudin.info),
+[Michaël Defferrard](https://deff.ch),
+[Tomasz Kacprzak](http://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html),
+[Raphael Sgier](http://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html)
 
 The code in this repository implements a generalization of Convolutional Neural Networks (CNNs) to the sphere.
 We here model the discretised sphere as a graph of connected pixels.
@@ -14,20 +12,28 @@ The pooling strategy exploits a hierarchical pixelisation of the sphere (HEALPix
 The graph neural network model is based on [ChebNet][gcnn_paper] and its [TensorFlow implementation][gcnn_code].
 The performance of DeepSphere is demonstrated on a discrimination problem: the classification of convergence maps into two cosmological model classes.
 
-Ressources:
-* **blog post**: [DeepSphere: a neural network architecture for spherical data][blog]
-* **paper (cosmo)**: [DeepSphere: Efficient spherical CNN with HEALPix sampling for cosmological applications][paper_cosmo]
-* **paper (ML)**: [DeepSphere: a graph-based spherical CNN with approximate equivariance][paper_ml]
-* **slides**: [DeepSphere: Efficient spherical CNN with HEALPix sampling for cosmological applications][slides] ([AIcosmo2019])
-
-[blog]: https://datascience.ch/deepsphere-a-neural-network-architecture-for-spherical-data
-[paper_cosmo]: https://arxiv.org/abs/1810.12186
-[paper_ml]: https://arxiv.org/abs/1904.05146
-[slides]: https://doi.org/10.5281/zenodo.3243380
-[AIcosmo2019]: https://sites.google.com/site/aicosmo2019
-
 [gcnn_paper]: https://arxiv.org/abs/1606.09375
 [gcnn_code]: https://github.com/mdeff/cnn_graph/
+
+## Resources
+
+Code:
+* [deepsphere-cosmo-tf1](https://github.com/deepsphere/deepsphere-cosmo-tf1): original repository, implemented in TensorFlow v1. Use to reproduce [this paper][paper_cosmo].
+* [deepsphere-cosmo-tf2](https://github.com/deepsphere/deepsphere-cosmo-tf2): reimplementation in TFv2. Use for new developments in TensorFlow targeting HEALPix.
+* [deepsphere-tf1](https://github.com/deepsphere/deepsphere-tf1): extended to other samplings and experiments, implemented in TFv1. Use to reproduce [this paper][paper_iclr].
+* [deepsphere-pytorch](https://github.com/deepsphere/deepsphere-pytorch): reimplementation in PyTorch. Use for new developments in PyTorch.
+
+Papers:
+* DeepSphere: Efficient spherical CNN with HEALPix sampling for cosmological applications, 2018.\
+  [[paper][paper_cosmo], [blog](https://datascience.ch/deepsphere-a-neural-network-architecture-for-spherical-data), [slides](https://doi.org/10.5281/zenodo.3243380)]
+* DeepSphere: towards an equivariant graph-based spherical CNN, 2019.\
+  [[paper][paper_rlgm], [poster](https://doi.org/10.5281/zenodo.2839355)]
+* DeepSphere: a graph-based spherical CNN, 2020.\
+  [[paper][paper_iclr], [slides](https://doi.org/10.5281/zenodo.3777976), [video](https://youtu.be/NC_XLbbCevk)]
+
+[paper_cosmo]: https://arxiv.org/abs/1810.12186
+[paper_rlgm]: https://arxiv.org/abs/1904.05146
+[paper_iclr]: https://openreview.net/forum?id=B1e3OlStPB
 
 ## Installation
 

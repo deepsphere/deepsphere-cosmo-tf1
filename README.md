@@ -2,8 +2,8 @@
 
 [Nathanaël Perraudin](https://perraudin.info),
 [Michaël Defferrard](https://deff.ch),
-[Tomasz Kacprzak](http://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html),
-[Raphael Sgier](http://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html)
+[Tomasz Kacprzak](https://www.ipa.phys.ethz.ch/people/person-detail.MjEyNzM5.TGlzdC82NjQsNTkxMDczNDQw.html),
+[Raphael Sgier](https://www.ipa.phys.ethz.ch/people/person-detail.MTcyNDY3.TGlzdC82NjQsNTkxMDczNDQw.html)
 
 The code in this repository implements a generalization of Convolutional Neural Networks (CNNs) to the sphere.
 We here model the discretised sphere as a graph of connected pixels.

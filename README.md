@@ -18,9 +18,9 @@ The performance of DeepSphere is demonstrated on a discrimination problem: the c
 ## Resources
 
 Code:
-* [deepsphere-cosmo-tf1](https://github.com/deepsphere/deepsphere-cosmo-tf1): original repository, implemented in TensorFlow v1. Use to reproduce [this paper][paper_cosmo].
+* [deepsphere-cosmo-tf1](https://github.com/deepsphere/deepsphere-cosmo-tf1): original repository, implemented in TensorFlow v1. Use to reproduce [`arxiv:1810.12186`][paper_cosmo].
 * [deepsphere-cosmo-tf2](https://github.com/deepsphere/deepsphere-cosmo-tf2): reimplementation in TFv2. Use for new developments in TensorFlow targeting HEALPix.
-* [deepsphere-tf1](https://github.com/deepsphere/deepsphere-tf1): extended to other samplings and experiments, implemented in TFv1. Use to reproduce [this paper][paper_iclr].
+* [deepsphere-tf1](https://github.com/deepsphere/deepsphere-tf1): extended to other samplings and experiments, implemented in TFv1. Use to reproduce [`arxiv:2012.15000`][paper_iclr].
 * [deepsphere-pytorch](https://github.com/deepsphere/deepsphere-pytorch): reimplementation in PyTorch. Use for new developments in PyTorch.
 
 Papers:
@@ -33,7 +33,7 @@ Papers:
 
 [paper_cosmo]: https://arxiv.org/abs/1810.12186
 [paper_rlgm]: https://arxiv.org/abs/1904.05146
-[paper_iclr]: https://openreview.net/forum?id=B1e3OlStPB
+[paper_iclr]: https://arxiv.org/abs/2012.15000
 
 ## Installation
 
